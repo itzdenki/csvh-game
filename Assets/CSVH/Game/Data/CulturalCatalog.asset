@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9c617d6ee08704249ac6e850dd2a6316, type: 3}
+  m_Name: CulturalCatalog
+  m_EditorClassIdentifier: CSVH.Game::CSVH.Game.Data.CulturalCatalogSO
+  _enemyNames:
+  - "Thu\u1ED3ng_Lu\u1ED3ng"
+  - "Qu\xE2n_T\u1ED1ng"
+  - "Qu\xE2n_Nguy\xEAn_M\xF4ng"
+  - "H\u1ED3_Tinh"
+  - "M\u1ED9c_Tinh"
+  - "Qu\u1EF7_M\u1ED9t_Gi\xF2"
+  _specialNames:
+  - "Tr\u1ED1ng_\u0110\u1ED3ng_\u0110\xF4ng_S\u01A1n"
+  - "L\u01B0\u1EE1i_G\u01B0\u01A1m_L\xEA_L\u1EE3i"
+  - "M\u0169i_T\xEAn_An_D\u01B0\u01A1ng_V\u01B0\u01A1ng"
+  _projectileNames:
+  - "M\u0169i_T\xEAn_Tre"
+  - "\u0110\u1EA1n_\u0110\xE1"

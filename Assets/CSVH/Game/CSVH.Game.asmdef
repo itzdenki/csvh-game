@@ -1,0 +1,23 @@
+{
+    "name": "CSVH.Game",
+    "rootNamespace": "CSVH.Game",
+    "references": [
+        "CSVH.Core",
+        "Unity.InputSystem",
+        "Unity.RenderPipelines.Universal.Runtime",
+        "Unity.RenderPipelines.Core.Runtime",
+        "Unity.2D.Tilemap.Extras",
+        "Unity.2D.SpriteShape.Runtime"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "Newtonsoft.Json.dll"
+    ],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

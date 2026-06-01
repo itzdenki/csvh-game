@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Feature: tower-defense-vn, Task 12.1 - HUD UXML (six anchored regions)
+    Validates: Requirements 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7
+
+    Layout note (lề trái): UpgradeIcons được đặt vào BottomLeft theo yêu cầu UX
+    để chiếm ít không gian giữa màn hình. Thứ tự cố định Công/Giáp/Special/EXP
+    giữ nguyên theo Requirement 6.8.
+-->
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
+    <ui:Style src="project://database/Assets/CSVH/Game/UI/HUD.uss" />
+    <ui:VisualElement name="root" class="hud-root">
+        <ui:VisualElement name="TopLeft" class="hud-region top-left" />
+        <ui:VisualElement name="TopCenter" class="hud-region top-center">
+            <ui:Label name="WaveLabel" class="hud-text" />
+            <ui:Label name="WaveElapsedLabel" class="hud-text" />
+            <ui:Label name="NextWaveLabel" class="hud-text" />
+            <ui:Label name="CountdownLabel" class="hud-text" />
+        </ui:VisualElement>
+        <ui:VisualElement name="TopRight" class="hud-region top-right">
+            <ui:Label name="ScoreLabel" class="hud-text" />
+            <ui:Label name="HighScoreLabel" class="hud-text" />
+        </ui:VisualElement>
+        <ui:VisualElement name="BottomLeft" class="hud-region bottom-left">
+            <ui:Label name="LevelLabel" class="hud-text" />
+            <ui:Label name="GoldLabel" class="hud-text hud-gold" />
+            <ui:VisualElement name="ExpProgress" class="hud-exp-progress" />
+            <ui:VisualElement name="UpgradeIcons" class="hud-upgrade-icons">
+                <ui:Button name="IconAttack" class="hud-icon" text="Công" />
+                <ui:Button name="IconArmor" class="hud-icon" text="Giáp" />
+                <ui:Button name="IconSpecial" class="hud-icon" text="Đặc biệt" />
+                <ui:Button name="IconExp" class="hud-icon" text="EXP" />
+            </ui:VisualElement>
+            <ui:Label name="HpLabel" class="hud-text" />
+            <ui:VisualElement name="HpBar" class="hud-hpbar">
+                <ui:VisualElement name="HpBarFill" class="hud-hpbar-fill" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement name="BottomCenter" class="hud-region bottom-center" />
+        <ui:VisualElement name="BottomRight" class="hud-region bottom-right">
+            <ui:Label name="SkillSectionLabel" class="hud-text hud-skill-title" text="Skill đặc biệt" />
+            <ui:VisualElement name="SkillIcons" class="hud-skill-icons">
+                <ui:Button name="IconSkillTrongDong" class="hud-icon hud-icon-skill" text="Trống Đồng" />
+                <ui:Button name="IconSkillMuiTen" class="hud-icon hud-icon-skill" text="Mũi Tên" />
+                <ui:Button name="IconSkillLuoiGuom" class="hud-icon hud-icon-skill" text="Lưỡi Gươm" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

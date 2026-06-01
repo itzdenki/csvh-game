@@ -1,0 +1,87 @@
+# =============================================================
+#  .gitignore cho dự án Unity — Cổ Sử Việt Hùng (CSVH)
+#  Tham khảo bản chuẩn: https://github.com/github/gitignore/blob/main/Unity.gitignore
+# =============================================================
+
+# --- Thư mục Unity tự sinh (KHÔNG commit) ---
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+
+# MemoryCaptures có thể rất nặng và chứa dữ liệu nhạy cảm
+/[Mm]emoryCaptures/
+
+# Recordings có thể rất nặng
+/[Rr]ecordings/
+
+# Plugin Rider tự sinh trong Assets
+/[Aa]ssets/Plugins/Editor/JetBrains*
+
+# --- IDE / Editor ---
+.vs/
+.vsconfig
+.idea/
+.gradle/
+ExportedObj/
+.consulo/
+
+# --- File solution / project tự sinh ---
+*.csproj
+*.unityproj
+*.sln
+*.slnx
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# Meta tự sinh
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+
+# Báo cáo crash Unity
+sysinfo.txt
+
+# --- Bản build ---
+*.apk
+*.aab
+*.unitypackage
+*.app
+*.ipa
+
+# Crashlytics
+crashlytics-build.properties
+
+# Addressables đã đóng gói
+/[Aa]ssets/[Aa]ddressable[Aa]ssets[Dd]ata/*/*.bin*
+
+# StreamingAssets tự sinh cho Android (giữ lại waves.json / enemies.json)
+/[Aa]ssets/[Ss]treamingAssets/aa.meta
+/[Aa]ssets/[Ss]treamingAssets/aa/*
+
+# --- Plastic SCM (project dùng com.unity.collab-proxy) ---
+/.plastic/
+plastic.workspace
+.plastic.config
+
+# --- Hệ điều hành ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- File rác trên Windows ---
+# 'nul' là tên thiết bị dành riêng của Windows, vô tình bị tạo và gây lỗi
+#  "unable to index file 'nul'" khi chạy `git add .`
+nul

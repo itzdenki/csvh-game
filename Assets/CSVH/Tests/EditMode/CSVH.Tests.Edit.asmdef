@@ -1,0 +1,28 @@
+{
+    "name": "CSVH.Tests.Edit",
+    "rootNamespace": "CSVH.Tests.Edit",
+    "references": [
+        "CSVH.Core",
+        "CSVH.Game",
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll",
+        "FsCheck.dll",
+        "FSharp.Core.dll",
+        "Newtonsoft.Json.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

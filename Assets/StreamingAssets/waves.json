@@ -1,0 +1,72 @@
+[
+  {
+    "waveNumber": 1,
+    "preparationSeconds": 15.0,
+    "spawnGates": [
+      { "x": -8.0, "y": 4.5 },
+      { "x": 0.0, "y": 6.0 }
+    ],
+    "spawns": [
+      { "enemyId": "Hồ_Tinh", "count": 5, "spawnIntervalSeconds": 1.8 }
+    ]
+  },
+  {
+    "waveNumber": 2,
+    "preparationSeconds": 20.0,
+    "spawnGates": [
+      { "x": -8.0, "y": 4.5 },
+      { "x": -8.0, "y": 0.0 },
+      { "x": 0.0, "y": 6.0 }
+    ],
+    "spawns": [
+      { "enemyId": "Hồ_Tinh", "count": 7, "spawnIntervalSeconds": 1.4 },
+      { "enemyId": "Quân_Tống", "count": 3, "spawnIntervalSeconds": 2.5 }
+    ]
+  },
+  {
+    "waveNumber": 3,
+    "preparationSeconds": 25.0,
+    "spawnGates": [
+      { "x": -8.0, "y": 4.5 },
+      { "x": -5.0, "y": 0.0 },
+      { "x": 0.0, "y": 6.0 },
+      { "x": 4.0, "y": 5.0 }
+    ],
+    "spawns": [
+      { "enemyId": "Quân_Tống", "count": 6, "spawnIntervalSeconds": 1.6 },
+      { "enemyId": "Quân_Nguyên_Mông", "count": 4, "spawnIntervalSeconds": 2.0 },
+      { "enemyId": "Hồ_Tinh", "count": 6, "spawnIntervalSeconds": 1.2 }
+    ]
+  },
+  {
+    "waveNumber": 4,
+    "preparationSeconds": 30.0,
+    "spawnGates": [
+      { "x": -8.0, "y": 4.5 },
+      { "x": -8.0, "y": -2.0 },
+      { "x": 0.0, "y": 6.0 },
+      { "x": 4.0, "y": 5.0 }
+    ],
+    "spawns": [
+      { "enemyId": "Quân_Nguyên_Mông", "count": 8, "spawnIntervalSeconds": 1.4 },
+      { "enemyId": "Mộc_Tinh", "count": 4, "spawnIntervalSeconds": 2.6 },
+      { "enemyId": "Quân_Tống", "count": 5, "spawnIntervalSeconds": 1.7 }
+    ]
+  },
+  {
+    "waveNumber": 5,
+    "preparationSeconds": 35.0,
+    "spawnGates": [
+      { "x": -8.0, "y": 4.5 },
+      { "x": -8.0, "y": -4.0 },
+      { "x": 0.0, "y": 6.0 },
+      { "x": 4.0, "y": 5.0 }
+    ],
+    "spawns": [
+      { "enemyId": "Thuồng_Luồng", "count": 3, "spawnIntervalSeconds": 3.0 },
+      { "enemyId": "Quân_Nguyên_Mông", "count": 6, "spawnIntervalSeconds": 1.4 },
+      { "enemyId": "Mộc_Tinh", "count": 4, "spawnIntervalSeconds": 2.0 },
+      { "enemyId": "Quỷ_Một_Giò", "count": 1, "spawnIntervalSeconds": 5.0 }
+    ]
+  }
+]

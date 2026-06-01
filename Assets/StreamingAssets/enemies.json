@@ -1,0 +1,68 @@
+[
+  {
+    "id": "Hồ_Tinh",
+    "localizedName": "Hồ Tinh",
+    "maxHp": 15.0,
+    "speed": 2.4,
+    "meleeDamage": 5.0,
+    "resistance": 0.0,
+    "goldReward": 5,
+    "expReward": 8,
+    "scoreReward": 10
+  },
+  {
+    "id": "Quân_Tống",
+    "localizedName": "Quân Tống",
+    "maxHp": 35.0,
+    "speed": 1.4,
+    "meleeDamage": 8.0,
+    "resistance": 1.0,
+    "goldReward": 8,
+    "expReward": 10,
+    "scoreReward": 15
+  },
+  {
+    "id": "Quân_Nguyên_Mông",
+    "localizedName": "Quân Nguyên Mông",
+    "maxHp": 50.0,
+    "speed": 1.9,
+    "meleeDamage": 10.0,
+    "resistance": 2.0,
+    "goldReward": 12,
+    "expReward": 14,
+    "scoreReward": 20
+  },
+  {
+    "id": "Mộc_Tinh",
+    "localizedName": "Mộc Tinh",
+    "maxHp": 70.0,
+    "speed": 0.9,
+    "meleeDamage": 6.0,
+    "resistance": 3.0,
+    "goldReward": 10,
+    "expReward": 12,
+    "scoreReward": 18
+  },
+  {
+    "id": "Thuồng_Luồng",
+    "localizedName": "Thuồng Luồng",
+    "maxHp": 110.0,
+    "speed": 0.8,
+    "meleeDamage": 18.0,
+    "resistance": 4.0,
+    "goldReward": 18,
+    "expReward": 22,
+    "scoreReward": 30
+  },
+  {
+    "id": "Quỷ_Một_Giò",
+    "localizedName": "Quỷ Một Giò",
+    "maxHp": 700.0,
+    "speed": 1.0,
+    "meleeDamage": 95.0,
+    "resistance": 8.0,
+    "goldReward": 80,
+    "expReward": 120,
+    "scoreReward": 200
+  }
+]

@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2b2bd32451d36754996966f7939beb61, type: 3}
+  m_Name: EnemySpriteRegistry
+  m_EditorClassIdentifier: CSVH.Game::CSVH.Game.Data.EnemySpriteRegistrySO
+  _entries:
+  - Id: "H\u1ED3_Tinh"
+    Sprite: {fileID: 5588915129000528388, guid: 880d1e3171410ac4681505a6c97033e0, type: 3}
+  - Id: "Qu\xE2n_T\u1ED1ng"
+    Sprite: {fileID: 3948124394010152983, guid: 7df88b5d2daec0c4bb32a76ff74cf649, type: 3}
+  - Id: "Qu\xE2n_Nguy\xEAn_M\xF4ng"
+    Sprite: {fileID: 5912185280047466582, guid: 438f51274b957164fa8f537a55c05dea, type: 3}
+  - Id: "M\u1ED9c_Tinh"
+    Sprite: {fileID: -9080712316459975259, guid: dc5804a7b35d51c4eb53eb0bbeac3977, type: 3}
+  - Id: "Thu\u1ED3ng_Lu\u1ED3ng"
+    Sprite: {fileID: -7565171749068916903, guid: 309567166c1a18c49971a41257c87958, type: 3}
+  - Id: "Qu\u1EF7_M\u1ED9t_Gi\xF2"
+    Sprite: {fileID: 4112130325923112468, guid: e2a9dc76eea2b5340ad4041873584d55, type: 3}

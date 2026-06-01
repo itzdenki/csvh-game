@@ -1,0 +1,249 @@
+/*
+    Feature: tower-defense-vn, Task 12.1 - HUD USS (anchored regions)
+    Validates: Requirements 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7
+*/
+
+.hud-root { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
+.hud-region { position: absolute; padding: 8px; }
+.top-left { left: 0; top: 0; width: 33%; height: 33%; }
+.top-center { left: 33%; top: 0; width: 33%; height: 33%; -unity-text-align: upper-center; }
+.top-right { right: 0; top: 0; width: 33%; height: 33%; -unity-text-align: upper-right; }
+.bottom-left {
+    left: 0;
+    bottom: 0;
+    width: 33%;
+    height: 33%;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-end;
+}
+.bottom-center { left: 33%; bottom: 0; width: 33%; height: 33%; -unity-text-align: lower-center; }
+.bottom-right {
+    right: 0;
+    bottom: 0;
+    width: 33%;
+    height: 33%;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: flex-end;
+}
+.hud-text { color: white; font-size: 18px; -unity-font-style: bold; }
+.hud-gold { color: rgb(255, 210, 90); margin-top: 2px; }
+
+/*
+    Upgrade icons — thu nhỏ và neo lề trái dưới (theo yêu cầu UX).
+    Bốn nút Công/Giáp/Special/EXP xếp ngang, mỗi icon 36×36px, gọn gàng dưới
+    EXP progress ring. Background được tô màu Đông Sơn để phân biệt từng nhánh
+    cho đến khi designer drop sprite riêng vào.
+*/
+.hud-upgrade-icons {
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    margin-top: 6px;
+}
+
+.hud-icon {
+    width: 56px;
+    height: 56px;
+    margin: 4px;
+    padding: 0;
+    border-width: 2px;
+    border-color: rgb(120, 80, 30);
+    border-radius: 6px;
+    background-color: rgba(60, 40, 20, 0.85);
+    color: rgb(255, 220, 150);
+    font-size: 13px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    transition-property: scale, border-color;
+    transition-duration: 0.08s;
+}
+
+.hud-icon:hover { background-color: rgba(120, 70, 30, 0.95); scale: 1.12 1.12; border-color: rgb(255, 210, 120); }
+.hud-icon:active { background-color: rgba(180, 110, 40, 1); scale: 1.05 1.05; }
+
+#IconAttack  { background-color: rgba(160, 50, 40, 0.85); }
+#IconArmor   { background-color: rgba(60, 110, 70, 0.85); }
+#IconExp     { background-color: rgba(80, 100, 130, 0.85); }
+
+/* Ba skill Special — tông đồng/vàng cổ, kich thước nhỏ hơn để xếp gọn 3 icon. */
+.hud-icon-skill { width: 50px; height: 50px; font-size: 11px; }
+#IconSkillTrongDong { background-color: rgba(170, 120, 45, 0.9); }
+#IconSkillMuiTen    { background-color: rgba(120, 95, 60, 0.9); }
+#IconSkillLuoiGuom  { background-color: rgba(140, 110, 40, 0.9); }
+
+/*
+    Khu skill đặc biệt ở góc phải-dưới (BottomRight): tiêu đề nhỏ + hàng 3 icon canh phải.
+*/
+.hud-skill-title {
+    font-size: 14px;
+    color: rgb(255, 220, 150);
+    margin-bottom: 4px;
+    -unity-text-align: middle-right;
+}
+
+.hud-skill-icons {
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+/*
+    Skill chưa mở khoá — làm TỐI (nền xám than, viền mờ) để báo hiệu phải "mua" trước.
+    Opacity được HUDController set thêm khi runtime.
+*/
+.hud-icon-locked {
+    background-color: rgba(30, 30, 34, 0.92);
+    border-color: rgb(70, 70, 78);
+    color: rgb(150, 150, 155);
+}
+
+.hud-icon-locked:hover {
+    background-color: rgba(45, 45, 52, 0.95);
+    border-color: rgb(120, 120, 130);
+}
+
+.hud-exp-progress {
+    width: 56px;
+    height: 56px;
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: 28px;
+}
+
+/*
+    Thanh máu Thành trong HUD (BottomLeft, ngay dưới chữ HP). Nền tối + fill xanh
+    co theo tỉ lệ HP. Width fill được cập nhật bằng code (HUDController.ApplySnapshot).
+*/
+.hud-hpbar {
+    width: 180px;
+    height: 14px;
+    margin-top: 2px;
+    background-color: rgba(10, 10, 14, 0.85);
+    border-width: 1px;
+    border-color: rgb(120, 80, 30);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.hud-hpbar-fill {
+    height: 100%;
+    width: 100%;
+    background-color: rgb(51, 217, 76);
+    border-radius: 2px;
+}
+
+/*
+    Task 12.2 - UpgradeIconView styling (cost label, cooldown label, toast)
+    Validates: Requirements 6.3, 6.7, 6.8
+*/
+
+.hud-icon-cost {
+    position: absolute;
+    bottom: 1px;
+    right: 2px;
+    font-size: 9px;
+    color: rgb(255, 200, 80);
+}
+
+.hud-icon-cooldown {
+    position: absolute;
+    top: 1px;
+    right: 2px;
+    font-size: 11px;
+    color: rgb(255, 255, 255);
+}
+
+.hud-toast {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    translate: -50% -50%;
+    padding: 12px 24px;
+    background-color: rgba(40, 20, 10, 0.92);
+    color: rgb(255, 220, 150);
+    border-width: 2px;
+    border-color: rgb(220, 80, 40);
+    border-radius: 6px;
+    font-size: 18px;
+}
+
+.hud-toast-error {
+    border-color: rgb(220, 80, 40);
+}
+
+/*
+    Bảng nâng cấp (modal) — phủ toàn màn hình, làm mờ nền và chặn tương tác phía dưới.
+    Hiện khi người chơi nhấn một icon nâng cấp; game tạm dừng (Time.timeScale = 0) cho
+    đến khi người chơi nhấn "Nâng cấp" hoặc "Đóng".
+*/
+.hud-modal-overlay {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    align-items: center;
+    justify-content: center;
+}
+
+.hud-modal-panel {
+    min-width: 360px;
+    max-width: 520px;
+    padding: 24px;
+    background-color: rgba(38, 24, 14, 0.98);
+    border-width: 3px;
+    border-color: rgb(180, 120, 50);
+    border-radius: 12px;
+    align-items: center;
+}
+
+.hud-modal-title {
+    font-size: 26px;
+    -unity-font-style: bold;
+    color: rgb(255, 220, 150);
+    margin-bottom: 12px;
+    -unity-text-align: middle-center;
+}
+
+.hud-modal-body {
+    font-size: 18px;
+    color: rgb(235, 225, 210);
+    margin-bottom: 20px;
+    white-space: normal;
+    -unity-text-align: middle-center;
+}
+
+.hud-modal-buttons {
+    flex-direction: row;
+    justify-content: center;
+}
+
+.hud-modal-button {
+    min-width: 120px;
+    height: 44px;
+    margin: 0 8px;
+    padding: 0 16px;
+    border-width: 2px;
+    border-radius: 6px;
+    font-size: 18px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+}
+
+.hud-modal-confirm {
+    background-color: rgba(60, 120, 70, 0.95);
+    border-color: rgb(120, 200, 130);
+    color: rgb(240, 255, 240);
+}
+
+.hud-modal-confirm:hover { background-color: rgba(80, 150, 90, 1); }
+
+.hud-modal-cancel {
+    background-color: rgba(120, 60, 50, 0.95);
+    border-color: rgb(200, 110, 90);
+    color: rgb(255, 235, 230);
+}
+
+.hud-modal-cancel:hover { background-color: rgba(150, 75, 60, 1); }
