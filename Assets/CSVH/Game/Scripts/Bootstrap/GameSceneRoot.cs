@@ -669,6 +669,26 @@ namespace CSVH.Game.Bootstrap
             PushHudSnapshot();
         }
 
+        private void LateUpdate()
+        {
+            if (Camera.main != null)
+            {
+                // Feature: Auto adjust camera position to anchor the tower's relative screen position
+                // based on the 1920x1080 (16:9) reference aspect ratio.
+                float refAspect = 1920f / 1080f;
+                float currentAspect = (float)Screen.width / Screen.height;
+                float aspectMultiplier = currentAspect / refAspect;
+
+                var pos = Camera.main.transform.position;
+                // Dời camera theo trục X sao cho tỉ lệ khoảng cách từ Thành tới tâm Camera 
+                // thay đổi thuận với tỉ lệ Aspect Ratio, giúp Thành luôn giữ nguyên vị trí tương đối trên màn hình.
+                // Giả định vị trí gốc của Camera là X = 0 ở tỉ lệ 16:9.
+                float originalCamX = 0f; 
+                pos.x = _towerPosition.x - (_towerPosition.x - originalCamX) * aspectMultiplier;
+                Camera.main.transform.position = pos;
+            }
+        }
+
         private void PushHudSnapshot()
         {
             if (_hud == null)

@@ -166,6 +166,35 @@ namespace CSVH.Game.UI
         /// <summary>Truy cập vòng tiến trình EXP để các view phụ (gradient, sprite) gắn vào.</summary>
         public VisualElement ExpProgressElement => _expProgress;
 
+        /// <summary>
+        /// Kiểm tra xem toạ độ chuột/touch có đang nằm trên một phần tử UI có thể tương tác không
+        /// (tránh bắn đạn khi click nhầm UI).
+        /// </summary>
+        public bool IsPointerOverUI(Vector2 screenPos)
+        {
+            if (Root == null || Root.panel == null) return false;
+
+            // Chuyển screenPos từ Bottom-Left (Input System) sang Top-Left (UI Toolkit)
+            Vector2 topDownScreenPos = new Vector2(screenPos.x, Screen.height - screenPos.y);
+
+            // Sử dụng RuntimePanelUtils để convert chính xác toạ độ màn hình sang toạ độ Panel ảo
+            Vector2 panelPos = RuntimePanelUtils.ScreenToPanel(Root.panel, topDownScreenPos);
+            var picked = Root.panel.Pick(panelPos);
+
+            if (picked == null || picked == Root)
+            {
+                return false;
+            }
+
+            // Bỏ qua các container rỗng trải khắp màn hình
+            if (picked.ClassListContains("hud-region") || picked.ClassListContains("hud-root"))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
         /// <summary>Truy cập <see cref="UIDocument.rootVisualElement"/> chuẩn hóa cho các view khác.</summary>
         public VisualElement Root { get; private set; }
 

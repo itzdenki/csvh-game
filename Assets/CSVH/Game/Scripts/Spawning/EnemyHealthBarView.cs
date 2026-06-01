@@ -45,6 +45,13 @@ namespace CSVH.Game.Spawning
         {
             if (_enemy == null || _bar == null) return;
 
+            // Feature: tower-defense-vn — Auto-scale world space UI based on camera zoom
+            if (Camera.main != null)
+            {
+                float camRatio = Camera.main.orthographicSize / 5f; // Giả sử 5f là orthographicSize chuẩn
+                _bar.Anchor.localScale = Vector3.one * camRatio;
+            }
+
             float maxHp = _enemy.MaxHp;
             if (maxHp <= 0f)
             {

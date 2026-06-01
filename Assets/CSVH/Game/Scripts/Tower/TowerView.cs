@@ -8,6 +8,7 @@ using CSVH.Core.Common;
 using CSVH.Core.Progression;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.EventSystems;
 
 namespace CSVH.Game.Tower
 {
@@ -85,6 +86,7 @@ namespace CSVH.Game.Tower
         private IUpgradeCostTable _costs;
         private float _cooldown;
         private LineRenderer _aimLine;
+        private bool _isAiming;
 
         // Điều kiện cho phép bắn: trả false khi không còn Quái sống của đợt → Thành ngừng
         // bắn. Có thể null (test/headless): khi null Thành bắn liên tục như cũ.
@@ -154,9 +156,29 @@ namespace CSVH.Game.Tower
             _aimLine.endWidth = _aimLineWidth;
             _aimLine.numCapVertices = 4;
             _aimLine.textureMode = LineTextureMode.Tile;
-            _aimLine.material = new Material(Shader.Find("Sprites/Default"));
-            _aimLine.startColor = new Color(1f, 0.95f, 0.6f, 0.25f);
-            _aimLine.endColor = new Color(1f, 0.9f, 0.4f, 0.05f);
+            
+            // Feature: Dashed Line Texture
+            var tex = new Texture2D(64, 2, TextureFormat.RGBA32, false);
+            tex.wrapMode = TextureWrapMode.Repeat;
+            tex.filterMode = FilterMode.Point;
+            Color solid = Color.white;
+            Color transparent = new Color(1f, 1f, 1f, 0f);
+            for (int x = 0; x < 64; x++)
+            {
+                Color c = (x < 32) ? solid : transparent;
+                tex.SetPixel(x, 0, c);
+                tex.SetPixel(x, 1, c);
+            }
+            tex.Apply();
+
+            var mat = new Material(Shader.Find("Sprites/Default"));
+            mat.mainTexture = tex;
+            // Scale U để nét đứt dày đặc hơn: 2 lặp lại mỗi đơn vị khoảng cách
+            mat.mainTextureScale = new Vector2(2f, 1f); 
+            
+            _aimLine.material = mat;
+            _aimLine.startColor = new Color(1f, 0.95f, 0.6f, 0.8f);
+            _aimLine.endColor = new Color(1f, 0.9f, 0.4f, 0.3f);
             _aimLine.sortingOrder = _towerSortingOrder + 1;
         }
 
@@ -193,32 +215,63 @@ namespace CSVH.Game.Tower
         }
 
         /// <summary>
-        /// Đọc phím Trái/Phải qua Input System và xoay góc ngắm. Quy ước: góc đo từ đáy,
-        /// <c>90°</c> = thẳng đứng. Phím Phải → giảm góc (lệch phải, <c>90° − x</c>),
-        /// phím Trái → tăng góc (lệch trái, <c>90° + x</c>). Góc bị kẹp trong
-        /// <c>[<see cref="_minAimAngleDeg"/>, <see cref="_maxAimAngleDeg"/>]</c>.
+        /// Đọc Touch/Click qua Input System và xoay góc ngắm. Cho phép người chơi
+        /// nhấn và kéo trên màn hình để hướng nòng pháo, ngoại trừ khi họ nhấn đè lên UI.
+        /// Góc bị kẹp trong <c>[<see cref="_minAimAngleDeg"/>, <see cref="_maxAimAngleDeg"/>]</c>.
         /// </summary>
         private void UpdateAim(float dt)
         {
-            var keyboard = Keyboard.current;
-            if (keyboard != null)
+            var pointer = Pointer.current;
+            if (pointer != null)
             {
-                float dir = 0f;
-                if (keyboard.leftArrowKey.isPressed || keyboard.aKey.isPressed)
+                // Khi vừa chạm/nhấn chuột xuống
+                if (pointer.press.wasPressedThisFrame)
                 {
-                    dir += 1f; // trái → tăng góc
-                }
-                if (keyboard.rightArrowKey.isPressed || keyboard.dKey.isPressed)
-                {
-                    dir -= 1f; // phải → giảm góc
+                    bool overUI = false;
+                    var hud = FindObjectOfType<CSVH.Game.UI.HUDController>();
+                    if (hud != null)
+                    {
+                        overUI = hud.IsPointerOverUI(pointer.position.ReadValue());
+                    }
+                    else if (EventSystem.current != null)
+                    {
+                        // Fallback nếu không tìm thấy HUD
+                        if (Touchscreen.current != null && Touchscreen.current.touches.Count > 0)
+                        {
+                            overUI = EventSystem.current.IsPointerOverGameObject(Touchscreen.current.touches[0].touchId.ReadValue());
+                        }
+                        else
+                        {
+                            overUI = EventSystem.current.IsPointerOverGameObject();
+                        }
+                    }
+
+                    // Nếu bấm trúng UI thì khóa ngắm trong suốt chu kỳ giữ tay này
+                    _isAiming = !overUI;
                 }
 
-                if (dir != 0f)
+                // Khi nhấc tay/nhả chuột ra
+                if (!pointer.press.isPressed)
                 {
-                    _aimAngleDeg = Mathf.Clamp(
-                        _aimAngleDeg + dir * _aimSpeedDegPerSecond * dt,
-                        _minAimAngleDeg,
-                        _maxAimAngleDeg);
+                    _isAiming = false;
+                }
+
+                // Nếu đang trong chu kỳ ngắm hợp lệ
+                if (_isAiming)
+                {
+                    var screenPos = pointer.position.ReadValue();
+                    if (Camera.main != null)
+                    {
+                        var worldPos = Camera.main.ScreenToWorldPoint(new Vector3(screenPos.x, screenPos.y, 0f));
+                        worldPos.z = 0f;
+                        Vector2 dir = (worldPos - transform.position).normalized;
+                        
+                        if (dir.sqrMagnitude > 0.01f)
+                        {
+                            float angleDeg = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
+                            _aimAngleDeg = Mathf.Clamp(angleDeg, _minAimAngleDeg, _maxAimAngleDeg);
+                        }
+                    }
                 }
             }
 

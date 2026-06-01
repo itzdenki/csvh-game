@@ -66,6 +66,14 @@ namespace CSVH.Game.Tower
         private void LateUpdate()
         {
             if (_bar == null) return;
+
+            // Feature: tower-defense-vn — Auto-scale world space UI based on camera zoom
+            if (Camera.main != null)
+            {
+                float camRatio = Camera.main.orthographicSize / 5f; // Giả sử 5f là orthographicSize chuẩn
+                _bar.Anchor.localScale = Vector3.one * camRatio;
+            }
+
             if (_hpGetter == null || _maxHpGetter == null)
             {
                 // Chưa bind → giữ thanh đầy mặc định để tránh flash 0/0 trong frame đầu.

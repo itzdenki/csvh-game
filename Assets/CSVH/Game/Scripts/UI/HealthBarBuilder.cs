@@ -13,13 +13,15 @@ namespace CSVH.Game.UI
     /// </summary>
     public sealed class HealthBarHandle
     {
+        public Transform Anchor { get; }
         public SpriteRenderer Background { get; }
         public SpriteRenderer Fill { get; }
         public Transform FillTransform { get; }
         public float Width { get; }
 
-        internal HealthBarHandle(SpriteRenderer bg, SpriteRenderer fill, Transform fillTransform, float width)
+        internal HealthBarHandle(Transform anchor, SpriteRenderer bg, SpriteRenderer fill, Transform fillTransform, float width)
         {
+            Anchor = anchor;
             Background = bg;
             Fill = fill;
             FillTransform = fillTransform;
@@ -117,7 +119,7 @@ namespace CSVH.Game.UI
             fillRenderer.color = initialColor;
             fillRenderer.sortingOrder = sortingOrder + 1;
 
-            return new HealthBarHandle(bgRenderer, fillRenderer, fillTransform, width);
+            return new HealthBarHandle(anchor, bgRenderer, fillRenderer, fillTransform, width);
         }
 
         /// <summary>
