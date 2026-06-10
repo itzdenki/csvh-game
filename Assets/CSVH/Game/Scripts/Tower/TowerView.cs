@@ -81,9 +81,26 @@ namespace CSVH.Game.Tower
         [Tooltip("Sorting order áp lên SpriteRenderer của Thành: ground < tower < projectile fx.")]
         [SerializeField] private int _towerSortingOrder = 10;
 
+        [Header("Hình Nỏ (Crossbow) — đổi theo trạng thái lên đạn")]
+        [Tooltip("SpriteRenderer của Nỏ. Bỏ trống thì tự lấy SpriteRenderer trên cùng GameObject.")]
+        [SerializeField] private SpriteRenderer _barrelRenderer;
+
+        [Tooltip("Hình Nỏ khi CHƯA lên đạn — vừa bắn xong, dây đang chùng (Tower_Cannon_1).")]
+        [SerializeField] private Sprite _unloadedSprite;
+
+        [Tooltip("Hình Nỏ khi ĐÃ lên đạn — dây đã kéo căng, sẵn sàng bắn (Tower_Cannon_2).")]
+        [SerializeField] private Sprite _loadedSprite;
+
+        [Tooltip("Tỉ lệ phần CUỐI của chu kỳ hồi chiêu mà Nỏ hiện 'đã lên đạn' trước khi bắn. " +
+                 "0.5 = nửa cuối hiện đã lên đạn (dây căng), nửa đầu (vừa bắn) hiện chưa lên đạn.")]
+        [Range(0f, 1f)]
+        [SerializeField] private float _loadedHoldFraction = 0.5f;
+
         private FieldGeometry _geometry;
         private UpgradeSystem _upgrades;
         private IUpgradeCostTable _costs;
+        private MatchUpgradeSystem _matchUpgrades;
+        private float _extraBaseDamage;
         private float _cooldown;
         private LineRenderer _aimLine;
         private bool _isAiming;
@@ -104,16 +121,28 @@ namespace CSVH.Game.Tower
         /// Điều kiện cho phép bắn — trả <c>false</c> khi không còn Quái sống của đợt để
         /// Thành ngừng bắn (tiết kiệm Đạn, đỡ rối màn hình). Có thể <c>null</c> ⇒ bắn liên tục.
         /// </param>
+        /// <param name="extraBaseDamage">
+        /// Sát_Thương_Cơ_Bản cộng thêm cho Đạn từ nâng cấp META "Sát thương Nỏ" (GDD Cơ chế 2).
+        /// Mặc định 0 (không có bonus). Giá trị âm/NaN bị coi như 0.
+        /// </param>
+        /// <param name="matchUpgrades">
+        /// Hệ 9 nâng cấp TRONG TRẬN (Sát Thương / Tốc Đánh / Chí Mạng / Tốc Độ Bay / Nỏ Băng /
+        /// Nỏ Độc…). Có thể <c>null</c> ⇒ Thành bắn với chỉ số gốc như cũ.
+        /// </param>
         public void Initialize(
             FieldGeometry geometry,
             UpgradeSystem upgrades,
             IUpgradeCostTable costs,
-            System.Func<bool> canFire = null)
+            System.Func<bool> canFire = null,
+            float extraBaseDamage = 0f,
+            MatchUpgradeSystem matchUpgrades = null)
         {
             _geometry = geometry;
             _upgrades = upgrades;
             _costs = costs;
             _canFire = canFire;
+            _extraBaseDamage = (extraBaseDamage > 0f) ? extraBaseDamage : 0f;
+            _matchUpgrades = matchUpgrades;
 
             if (_geometry is not null)
             {
@@ -124,11 +153,23 @@ namespace CSVH.Game.Tower
 
         private void Awake()
         {
+            // Tự lấy SpriteRenderer của Nỏ nếu chưa gán trong inspector.
+            if (_barrelRenderer == null)
+            {
+                TryGetComponent<SpriteRenderer>(out _barrelRenderer);
+            }
+
             // Áp sorting order Thành nếu có SpriteRenderer (Requirement 1.5). Prefab nên
             // gán sorting layer "Tower" trong inspector để giữ thứ tự đúng so với ground/projectile fx.
-            if (TryGetComponent<SpriteRenderer>(out var sr))
+            if (_barrelRenderer != null)
             {
-                sr.sortingOrder = _towerSortingOrder;
+                _barrelRenderer.sortingOrder = _towerSortingOrder;
+
+                // Khởi đầu hiển thị trạng thái CHƯA lên đạn; Nỏ sẽ tự lên đạn theo hồi chiêu.
+                if (_unloadedSprite != null)
+                {
+                    _barrelRenderer.sprite = _unloadedSprite;
+                }
             }
 
             _aimAngleDeg = Mathf.Clamp(_aimAngleDeg, _minAimAngleDeg, _maxAimAngleDeg);
@@ -150,7 +191,9 @@ namespace CSVH.Game.Tower
             var go = new GameObject("AimIndicator");
             go.transform.SetParent(transform, false);
             _aimLine = go.AddComponent<LineRenderer>();
-            _aimLine.useWorldSpace = false;
+            // World space: thân Nỏ giờ XOAY theo hướng ngắm — nếu vẽ theo toạ độ local,
+            // đường ngắm sẽ bị xoay kép (một lần theo transform, một lần theo góc ngắm).
+            _aimLine.useWorldSpace = true;
             _aimLine.positionCount = 2;
             _aimLine.startWidth = _aimLineWidth;
             _aimLine.endWidth = _aimLineWidth;
@@ -179,7 +222,8 @@ namespace CSVH.Game.Tower
             _aimLine.material = mat;
             _aimLine.startColor = new Color(1f, 0.95f, 0.6f, 0.8f);
             _aimLine.endColor = new Color(1f, 0.9f, 0.4f, 0.3f);
-            _aimLine.sortingOrder = _towerSortingOrder + 1;
+            // Vẽ DƯỚI thân Nỏ (nhưng vẫn trên Thành Lũy/nền) để tia ngắm không đè lên hình Nỏ.
+            _aimLine.sortingOrder = _towerSortingOrder - 1;
         }
 
         private void Update()
@@ -188,30 +232,59 @@ namespace CSVH.Game.Tower
 
             // Ngừng bắn khi không còn Quái sống của đợt (canFire trả false). Vẫn cho xoay
             // nòng để người chơi chuẩn bị hướng cho đợt kế.
-            if (_canFire != null && !_canFire())
+            bool canFire = _canFire == null || _canFire();
+
+            if (canFire)
+            {
+                // Requirement 3.1: bắn liên tục theo nhịp Tốc_Độ_Bắn dọc hướng ngắm.
+                if (_cooldown > 0f)
+                {
+                    _cooldown -= Time.deltaTime;
+                }
+
+                // Requirement 13.3: tôn trọng cap số Đạn đồng thời ≤ 500.
+                if (_cooldown <= 0f && ProjectileView.CanSpawn())
+                {
+                    Fire(CurrentAimDirection());
+                    _cooldown = CurrentFireCooldown();
+                }
+            }
+
+            // Đổi hình Nỏ theo trạng thái lên đạn (chưa/đã lên đạn).
+            RefreshBarrelSprite(canFire);
+        }
+
+        /// <summary>
+        /// Đổi hình Nỏ theo trạng thái lên đạn: vừa bắn xong (đầu chu kỳ hồi chiêu) hiện
+        /// <see cref="_unloadedSprite"/> (Cannon_1, dây chùng); khi đã lên dây xong ở phần cuối
+        /// chu kỳ — và lúc nghỉ giữa các đợt — hiện <see cref="_loadedSprite"/> (Cannon_2, dây căng).
+        /// Không làm gì nếu chưa gán SpriteRenderer/hình.
+        /// </summary>
+        private void RefreshBarrelSprite(bool canFire)
+        {
+            if (_barrelRenderer == null)
             {
                 return;
             }
 
-            // Requirement 3.1: bắn liên tục theo nhịp Tốc_Độ_Bắn dọc hướng ngắm.
-            if (_cooldown > 0f)
+            bool loaded;
+            if (!canFire)
             {
-                _cooldown -= Time.deltaTime;
+                // Nghỉ giữa các đợt: giữ Nỏ ở trạng thái đã lên đạn, sẵn sàng cho đợt kế.
+                loaded = true;
+            }
+            else
+            {
+                float fullCooldown = CurrentFireCooldown();
+                // "Đã lên đạn" khi hồi chiêu còn lại đã rơi vào phần cuối chu kỳ (dây kéo căng, sắp bắn).
+                loaded = _cooldown <= fullCooldown * _loadedHoldFraction;
             }
 
-            if (_cooldown > 0f)
+            var target = loaded ? _loadedSprite : _unloadedSprite;
+            if (target != null && _barrelRenderer.sprite != target)
             {
-                return;
+                _barrelRenderer.sprite = target;
             }
-
-            // Requirement 13.3: tôn trọng cap số Đạn đồng thời ≤ 500.
-            if (!ProjectileView.CanSpawn())
-            {
-                return;
-            }
-
-            Fire(CurrentAimDirection());
-            _cooldown = 1f / Mathf.Max(0.0001f, _fireRatePerSecond);
         }
 
         /// <summary>
@@ -275,7 +348,29 @@ namespace CSVH.Game.Tower
                 }
             }
 
+            // Xoay thân Nỏ theo hướng ngắm (hình Nỏ vẽ hướng lên +Y nên trừ 90° để
+            // 90° = thẳng đứng giữ nguyên hình gốc). Đường ngắm vẽ world-space nên không
+            // bị xoay kép; Đạn spawn theo transform.position nên không ảnh hưởng.
+            if (_barrelRenderer != null)
+            {
+                _barrelRenderer.transform.rotation = Quaternion.Euler(0f, 0f, _aimAngleDeg - 90f);
+            }
+
             UpdateAimIndicator();
+        }
+
+        /// <summary>
+        /// Cooldown đầy đủ giữa hai phát bắn = <c>1 / (fireRate × hệ số Tốc Đánh)</c>.
+        /// Nâng cấp trong trận "Tốc Đánh" tăng Fire Rate → khoảng cách hai phát bắn giảm.
+        /// </summary>
+        private float CurrentFireCooldown()
+        {
+            float rate = _fireRatePerSecond;
+            if (_matchUpgrades is not null)
+            {
+                rate *= _matchUpgrades.FireRateMultiplier;
+            }
+            return 1f / Mathf.Max(0.0001f, rate);
         }
 
         /// <summary>Vector hướng bắn đơn vị, suy từ <see cref="_aimAngleDeg"/> (đo từ đáy).</summary>
@@ -302,8 +397,9 @@ namespace CSVH.Game.Tower
                 length = DistanceToFieldEdge(transform.position, d);
             }
 
-            _aimLine.SetPosition(0, Vector3.zero);
-            _aimLine.SetPosition(1, new Vector3(d.x, d.y, 0f) * length);
+            var origin = transform.position;
+            _aimLine.SetPosition(0, origin);
+            _aimLine.SetPosition(1, origin + new Vector3(d.x, d.y, 0f) * length);
         }
 
         /// <summary>
@@ -356,22 +452,74 @@ namespace CSVH.Game.Tower
             }
 
             var origin = transform.position;
-            var velocity = direction.normalized * _projectileSpeed;
 
-            var go = Instantiate(_projectilePrefab, origin, Quaternion.identity);
-            var view = go.GetComponent<ProjectileView>();
-            if (view == null)
+            // Nâng cấp trong trận "Tốc Độ Bay": tăng vận tốc mũi tên.
+            float speed = _projectileSpeed;
+            if (_matchUpgrades is not null)
             {
-                // Prefab cấu hình sai — huỷ ngay để không lãng phí slot LiveCount.
-                Destroy(go);
-                return;
+                speed *= _matchUpgrades.ProjectileSpeedMultiplier;
             }
 
-            float multiplier = _upgrades is not null && _costs is not null
+            float baseMultiplier = _upgrades is not null && _costs is not null
                 ? _upgrades.CurrentAttackMultiplier(_costs)
                 : 1f;
 
-            view.Initialize(_geometry, velocity, _projectileBaseDamage, multiplier);
+            int totalArrows = 1;
+            float spreadDeg = 0f;
+            float critChance = 0f;
+            float slowFraction = 0f, slowSeconds = 0f, poisonFraction = 0f, poisonSeconds = 0f;
+            if (_matchUpgrades is not null)
+            {
+                // Nâng cấp trong trận "Sát Thương": nhân thêm vào hệ_số_công.
+                baseMultiplier *= _matchUpgrades.DamageMultiplier;
+                critChance = _matchUpgrades.CritChance;
+
+                // "Làn Đạn": bắn 1 + cấp mũi tên, tỏa đều quanh hướng ngắm.
+                totalArrows = 1 + _matchUpgrades.ExtraProjectiles;
+                spreadDeg = _matchUpgrades.MultishotSpreadDegrees;
+
+                slowFraction = _matchUpgrades.IceSlowFraction;
+                slowSeconds = _matchUpgrades.IceSlowDurationSeconds;
+                poisonFraction = _matchUpgrades.PoisonDpsFraction;
+                poisonSeconds = _matchUpgrades.PoisonDurationSeconds;
+            }
+
+            // Sát_Thương_Cơ_Bản = giá trị prefab + bonus META "Sát thương Nỏ" (GDD Cơ chế 2).
+            float baseDamage = _projectileBaseDamage + _extraBaseDamage;
+            var unitDir = direction.normalized;
+
+            for (int i = 0; i < totalArrows; i++)
+            {
+                // Tôn trọng cap 500 Đạn đồng thời (Requirement 13.3) cho từng mũi tên phụ.
+                if (!ProjectileView.CanSpawn())
+                {
+                    break;
+                }
+
+                // Tỏa đều quanh hướng ngắm: mũi giữa đi thẳng, các mũi phụ lệch ±spread.
+                float offsetDeg = (i - (totalArrows - 1) * 0.5f) * spreadDeg;
+                var dir = (Vector2)(Quaternion.Euler(0f, 0f, offsetDeg) * unitDir);
+
+                var go = Instantiate(_projectilePrefab, origin, Quaternion.identity);
+                var view = go.GetComponent<ProjectileView>();
+                if (view == null)
+                {
+                    // Prefab cấu hình sai — huỷ ngay để không lãng phí slot LiveCount.
+                    Destroy(go);
+                    return;
+                }
+
+                // "Chí Mạng" (gộp tỷ lệ + sát thương): roll RIÊNG từng mũi tên.
+                float multiplier = baseMultiplier;
+                if (critChance > 0f && Random.value < critChance)
+                {
+                    multiplier *= _matchUpgrades.CritMultiplier;
+                }
+
+                view.Initialize(
+                    _geometry, dir * speed, baseDamage, multiplier,
+                    slowFraction, slowSeconds, poisonFraction, poisonSeconds);
+            }
         }
     }
 }

@@ -42,13 +42,29 @@ namespace CSVH.Game.Spawning
         // khi null spawner giữ nguyên sprite mặc định trên prefab.
         [SerializeField] private EnemySpriteRegistrySO _spriteRegistry;
 
+        [Tooltip("Chiều cao hiển thị chuẩn (world units) cho mỗi Quái: sprite được scale về độ cao " +
+                 "này rồi nhân hệ số riêng trong registry, tránh quái quá bé/quá to do ảnh nguồn khác " +
+                 "độ phân giải. 0 = giữ nguyên scale của prefab.")]
+        [SerializeField] private float _enemyTargetHeight = 1.0f;
+
         private readonly List<EnemyView> _alive = new List<EnemyView>();
         private FieldGeometry _geometry;
 
         // Callback forward sự kiện Quái → tầng Core (GameSession). Có thể null trong
         // test/headless: khi null spawner chỉ quản lý vòng đời Prefab như cũ.
         private System.Action<EnemyConfig> _onReachedTower;
-        private System.Action<EnemyConfig> _onEnemyKilled;
+        private System.Action<EnemyConfig, Vector3> _onEnemyKilled;
+
+        // Quạ Đen (sinh khi chết): khi một Quái có Id thuộc _deathSpawnTriggerIds bị tiêu diệt,
+        // có _deathSpawnChance xác suất sinh _deathSpawnConfig ngay tại chỗ Quái ngã xuống.
+        private EnemyConfig _deathSpawnConfig;
+        private HashSet<string> _deathSpawnTriggerIds;
+        private float _deathSpawnChance;
+        // Điều kiện bổ sung (vd "từ Đợt 16 trở đi"); null = luôn cho phép.
+        private System.Func<bool> _deathSpawnEligible;
+
+        // Id Quái được bật cơ chế "hóa khô" (boss Mộc Tinh).
+        private string _enrageEnemyId;
 
         /// <summary>Danh sách Quái đang sống đã được spawner quản lý.</summary>
         public IReadOnlyList<EnemyView> AliveEnemies => _alive;
@@ -73,16 +89,48 @@ namespace CSVH.Game.Spawning
         /// </param>
         /// <param name="onEnemyKilled">
         /// Callback gọi khi một Quái bị tiêu diệt — dùng để cộng phần thưởng qua
-        /// <c>GameSession.OnEnemyKilled</c> (Requirement 2.4). Có thể <c>null</c>.
+        /// <c>GameSession.OnEnemyKilled</c> (Requirement 2.4). Tham số thứ hai là vị trí
+        /// thế giới nơi Quái chết, để view sinh hiệu ứng "Xu rơi" tại đúng chỗ. Có thể <c>null</c>.
         /// </param>
         public void Initialize(
             FieldGeometry geometry,
             System.Action<EnemyConfig> onReachedTower = null,
-            System.Action<EnemyConfig> onEnemyKilled = null)
+            System.Action<EnemyConfig, Vector3> onEnemyKilled = null)
         {
             _geometry = geometry;
             _onReachedTower = onReachedTower;
             _onEnemyKilled = onEnemyKilled;
+        }
+
+        /// <summary>
+        /// Cấu hình cơ chế Quạ Đen: khi một Quái có Id thuộc <paramref name="triggerIds"/> bị tiêu
+        /// diệt, có <paramref name="chance"/> (0..1) xác suất sinh <paramref name="spawnOnDeath"/>
+        /// ngay tại vị trí Quái ngã xuống. Truyền <paramref name="spawnOnDeath"/> = <c>null</c>
+        /// hoặc <paramref name="chance"/> ≤ 0 để tắt.
+        /// </summary>
+        /// <param name="eligible">
+        /// Điều kiện bổ sung kiểm tại thời điểm Quái chết (vd chỉ từ Đợt 16 trở đi —
+        /// trước đó Quạ Đen chưa "mở khóa" theo tiến trình chương). <c>null</c> = luôn cho phép.
+        /// </param>
+        public void ConfigureDeathSpawn(
+            EnemyConfig spawnOnDeath,
+            HashSet<string> triggerIds,
+            float chance,
+            System.Func<bool> eligible = null)
+        {
+            _deathSpawnConfig = spawnOnDeath;
+            _deathSpawnTriggerIds = triggerIds;
+            _deathSpawnChance = chance;
+            _deathSpawnEligible = eligible;
+        }
+
+        /// <summary>
+        /// Đặt Id Quái sẽ được bật cơ chế "hóa khô" khi spawn (boss Mộc Tinh). Mỗi cá thể spawn
+        /// ra có Id trùng sẽ được gọi <see cref="EnemyView.EnableEnrage"/>.
+        /// </summary>
+        public void SetEnrageEnemy(string enemyId)
+        {
+            _enrageEnemyId = enemyId;
         }
 
         /// <summary>
@@ -110,11 +158,24 @@ namespace CSVH.Game.Spawning
             }
         }
 
-        private void SpawnOne(SpawnIntent intent)
+        private void SpawnOne(SpawnIntent intent) => SpawnEnemy(intent.Enemy, intent.Gate);
+
+        /// <summary>
+        /// Sinh một Quái <paramref name="config"/> bắt đầu tại <paramref name="startPoint"/> — Cổng_Spawn
+        /// thường, hoặc vị trí Quái khác ngã xuống (cơ chế Quạ Đen) — đi theo polyline tới Vị_Trí_Thành.
+        /// Trả về <see cref="EnemyView"/> vừa tạo, hoặc <c>null</c> khi thiếu prefab/cấu hình hoặc đã đạt cap.
+        /// </summary>
+        private EnemyView SpawnEnemy(EnemyConfig config, FieldPoint startPoint)
         {
-            if (_enemyPrefab == null)
+            if (_enemyPrefab == null || config == null)
             {
-                return;
+                return null;
+            }
+
+            // Lưới an toàn cap (Requirement 13.4) — áp cho cả death-spawn Quạ Đen.
+            if (_alive.Count >= _aliveCap)
+            {
+                return null;
             }
 
             var go = Instantiate(_enemyPrefab, transform);
@@ -123,45 +184,101 @@ namespace CSVH.Game.Spawning
             {
                 // Prefab thiếu EnemyView — không thể quản lý; hủy ngay để tránh leak.
                 Destroy(go);
-                return;
+                return null;
             }
 
-            // Sinh polyline 2 điểm: Cổng_Spawn → Vị_Trí_Thành (Requirement 2.1).
+            // Sinh polyline 2 điểm: điểm xuất phát → Vị_Trí_Thành (Requirement 2.1).
             // Nếu geometry chưa inject, fallback về điểm hợp lệ trong góc Đông Nam
             // để tránh exception trong môi trường thử nghiệm; production luôn
             // inject FieldGeometry qua Initialize().
             FieldPoint towerPos = _geometry != null
                 ? _geometry.TowerPosition
                 : new FieldPoint(1f, -1f);
-            var path = EnemyPath.BuildPath(intent.Gate, towerPos);
+            var path = EnemyPath.BuildPath(startPoint, towerPos);
 
-            // Áp sprite theo EnemyConfig.Id nếu registry có cấu hình. Nếu không,
-            // giữ sprite mặc định gắn trên prefab — spawner vẫn hoạt động.
-            if (_spriteRegistry != null)
+            // Áp sprite theo EnemyConfig.Id nếu registry có cấu hình (nếu không, giữ sprite mặc
+            // định trên prefab) rồi CHUẨN HÓA kích thước: scale để sprite cao đúng _enemyTargetHeight
+            // world units, nhân hệ số riêng của Loại_Quái — để Quái không quá bé/quá to dù ảnh nguồn
+            // khác độ phân giải.
+            var renderer = go.GetComponent<SpriteRenderer>();
+            if (renderer != null && _spriteRegistry != null)
             {
-                var sprite = _spriteRegistry.GetSprite(intent.Enemy.Id);
+                var sprite = _spriteRegistry.GetSprite(config.Id);
                 if (sprite != null)
                 {
-                    var renderer = go.GetComponent<SpriteRenderer>();
-                    if (renderer != null)
+                    renderer.sprite = sprite;
+                }
+
+                if (renderer.sprite != null && _enemyTargetHeight > 0f)
+                {
+                    float spriteHeight = renderer.sprite.bounds.size.y;
+                    if (spriteHeight > 0.0001f)
                     {
-                        renderer.sprite = sprite;
+                        float s = (_enemyTargetHeight / spriteHeight) * _spriteRegistry.GetScale(config.Id);
+                        go.transform.localScale = new Vector3(s, s, 1f);
                     }
                 }
             }
 
-            view.Initialize(intent.Enemy, path);
+            view.Initialize(config, path);
+
+            // Boss Mộc Tinh: bật cơ chế "hóa khô" cho đúng cá thể boss.
+            if (!string.IsNullOrEmpty(_enrageEnemyId) && config.Id == _enrageEnemyId)
+            {
+                view.EnableEnrage();
+            }
+
             view.OnKilled += HandleKilled;
             view.OnMeleeHit += HandleMeleeHit;
 
             _alive.Add(view);
+            return view;
         }
 
         private void HandleKilled(EnemyView view, EnemyConfig config)
         {
             // Requirement 2.4: Quái bị tiêu diệt → cộng vàng/EXP/điểm qua GameSession.
-            _onEnemyKilled?.Invoke(config);
+            // Kèm vị trí chết (transform vẫn còn hợp lệ vì OnKilled raise trước Destroy)
+            // để view sinh hiệu ứng "Xu rơi" tại đúng chỗ Quái ngã xuống.
+            Vector3 deathPos = view != null ? view.transform.position : Vector3.zero;
+            _onEnemyKilled?.Invoke(config, deathPos);
             UnregisterAlive(view);
+
+            // Quạ Đen: xác suất trồi lên từ xác Bù Nhìn Rơm / Gốc Cây Ma.
+            TrySpawnDeathCrow(config, deathPos);
+        }
+
+        /// <summary>
+        /// Quạ Đen: nếu <paramref name="deadConfig"/> nằm trong danh sách kích hoạt và quay trúng
+        /// xác suất <see cref="_deathSpawnChance"/>, sinh một Quạ Đen ngay tại <paramref name="deathPos"/>
+        /// (Quạ bay từ đó về Thành). No-op khi chưa cấu hình hoặc Quái không thuộc nhóm kích hoạt.
+        /// </summary>
+        private void TrySpawnDeathCrow(EnemyConfig deadConfig, Vector3 deathPos)
+        {
+            if (_deathSpawnConfig == null || _deathSpawnChance <= 0f
+                || _deathSpawnTriggerIds == null || deadConfig == null)
+            {
+                return;
+            }
+
+            if (!_deathSpawnTriggerIds.Contains(deadConfig.Id))
+            {
+                return;
+            }
+
+            // Điều kiện mở khóa (vd Quạ Đen chỉ trồi lên từ Đợt 16+ — trước đó người chơi
+            // chưa từng gặp loại Quái này theo tiến trình chương).
+            if (_deathSpawnEligible != null && !_deathSpawnEligible())
+            {
+                return;
+            }
+
+            if (UnityEngine.Random.value > _deathSpawnChance)
+            {
+                return;
+            }
+
+            SpawnEnemy(_deathSpawnConfig, new FieldPoint(deathPos.x, deathPos.y));
         }
 
         private void HandleMeleeHit(EnemyView view, EnemyConfig config)

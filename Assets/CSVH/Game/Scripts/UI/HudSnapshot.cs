@@ -35,6 +35,10 @@ namespace CSVH.Game.UI
     /// Khi <c>true</c>, HUD hiển thị "Đợt kế tiếp" + "Đếm ngược" tại TopCenter (Pha_Chuẩn_Bị, Req 7.3).
     /// Khi <c>false</c>, hai dòng đó được làm trống và chỉ giữ "Đợt {N}/∞" (Đợt đang diễn ra, Req 7.6).
     /// </param>
+    /// <param name="BossName">
+    /// Tên boss khi Đợt hiện tại là Đợt boss — HUD hiện "BOSS: &lt;tên&gt;" thay cho "Đợt {N}/∞".
+    /// <c>null</c>/rỗng = Đợt thường.
+    /// </param>
     public readonly record struct HudSnapshot(
         int WaveNumber, int CountdownSeconds,
         int Level, int CurrentExp, int RequiredExp,
@@ -44,7 +48,8 @@ namespace CSVH.Game.UI
         SkillHudInfo TrongDong, SkillHudInfo MuiTen, SkillHudInfo LuoiGuom,
         bool ShowNextWave,
         float WaveElapsedSeconds = 0f, float WaveTimeRemainingSeconds = 0f,
-        bool IsEarlyClearPending = false, float EarlyClearCountdownSeconds = 0f);
+        bool IsEarlyClearPending = false, float EarlyClearCountdownSeconds = 0f,
+        string BossName = null);
 
     /// <summary>
     /// Thông tin hiển thị HUD cho MỘT skill Special: cấp hiện tại + tiến trình hồi chiêu.

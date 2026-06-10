@@ -43,6 +43,7 @@ namespace CSVH.Game.Storage
 
         private readonly ILogSink _log;
         private readonly string _highScoreFilePath;
+        private readonly string _metaProgressFilePath;
 
         /// <summary>
         /// Khởi tạo service với sink log để báo cáo lỗi parse (Requirement 12.4) và đường
@@ -53,6 +54,7 @@ namespace CSVH.Game.Storage
         {
             _log = log ?? NullLogSink.Instance;
             _highScoreFilePath = Path.Combine(Application.persistentDataPath, StorageKeys.HighScoreFile);
+            _metaProgressFilePath = Path.Combine(Application.persistentDataPath, StorageKeys.MetaProgressFile);
         }
 
         /// <inheritdoc />
@@ -138,6 +140,89 @@ namespace CSVH.Game.Storage
             WriteHighScoreToDisk(DefaultHighScore);
         }
 
+        // ==== META progress (Xu cổ) — GDD Cơ chế 2 ======================================
+
+        /// <inheritdoc />
+        public MetaProgressSnapshot ReadMetaProgress()
+        {
+            // Chưa từng ghi → mặc định rỗng (đồng dạng Kỷ_Lục, Requirement 12.4 default).
+            if (!File.Exists(_metaProgressFilePath))
+            {
+                return MetaProgressSnapshot.Empty;
+            }
+
+            string raw;
+            try
+            {
+                raw = File.ReadAllText(_metaProgressFilePath);
+            }
+            catch (Exception ex)
+            {
+                _log.Warn($"UnityStorageService: failed to read meta progress file '{_metaProgressFilePath}': {ex.Message}");
+                return MetaProgressSnapshot.Empty;
+            }
+
+            try
+            {
+                var dto = JsonConvert.DeserializeObject<MetaProgressDto>(raw);
+                if (dto == null)
+                {
+                    throw new JsonException("Meta progress payload is null.");
+                }
+
+                // Defensive: kẹp mọi trường về ≥ 0 (dữ liệu có thể bị sửa tay/hỏng).
+                return new MetaProgressSnapshot(
+                    Coins: dto.Coins < 0L ? 0L : dto.Coins,
+                    GateHpLevel: dto.GateHpLevel < 0 ? 0 : dto.GateHpLevel,
+                    CrossbowDamageLevel: dto.CrossbowDamageLevel < 0 ? 0 : dto.CrossbowDamageLevel,
+                    UltimateCooldownLevel: dto.UltimateCooldownLevel < 0 ? 0 : dto.UltimateCooldownLevel);
+            }
+            catch (Exception ex)
+            {
+                // Requirement 12.4: parse fail → log warning, ghi đè default, trả Empty.
+                _log.Warn($"UnityStorageService: corrupted meta progress file '{_metaProgressFilePath}', resetting to default. Detail: {ex.Message}");
+                WriteMetaProgressToDisk(MetaProgressSnapshot.Empty);
+                return MetaProgressSnapshot.Empty;
+            }
+        }
+
+        /// <inheritdoc />
+        public void WriteMetaProgress(MetaProgressSnapshot snapshot)
+        {
+            if (snapshot is null)
+            {
+                _log.Error("UnityStorageService: WriteMetaProgress called with null snapshot; ignoring.");
+                return;
+            }
+
+            // Bất biến: mọi trường lưu luôn không âm.
+            var sanitized = new MetaProgressSnapshot(
+                Coins: snapshot.Coins < 0L ? 0L : snapshot.Coins,
+                GateHpLevel: snapshot.GateHpLevel < 0 ? 0 : snapshot.GateHpLevel,
+                CrossbowDamageLevel: snapshot.CrossbowDamageLevel < 0 ? 0 : snapshot.CrossbowDamageLevel,
+                UltimateCooldownLevel: snapshot.UltimateCooldownLevel < 0 ? 0 : snapshot.UltimateCooldownLevel);
+            WriteMetaProgressToDisk(sanitized);
+        }
+
+        private void WriteMetaProgressToDisk(MetaProgressSnapshot snapshot)
+        {
+            try
+            {
+                var dto = new MetaProgressDto
+                {
+                    Coins = snapshot.Coins,
+                    GateHpLevel = snapshot.GateHpLevel,
+                    CrossbowDamageLevel = snapshot.CrossbowDamageLevel,
+                    UltimateCooldownLevel = snapshot.UltimateCooldownLevel,
+                };
+                File.WriteAllText(_metaProgressFilePath, JsonConvert.SerializeObject(dto));
+            }
+            catch (Exception ex)
+            {
+                _log.Error($"UnityStorageService: failed to write meta progress file '{_metaProgressFilePath}': {ex.Message}");
+            }
+        }
+
         /// <summary>
         /// DTO nội bộ cho schema <c>{"highScore": &lt;long&gt;}</c> (Requirement 8.6).
         /// Đặt private để không lộ chi tiết serialization ra ngoài Game tier.
@@ -146,6 +231,24 @@ namespace CSVH.Game.Storage
         {
             [JsonProperty("highScore")]
             public long HighScore { get; set; }
+        }
+
+        /// <summary>
+        /// DTO nội bộ cho schema tiến trình META (Xu cổ) — GDD Cơ chế 2.
+        /// </summary>
+        private sealed class MetaProgressDto
+        {
+            [JsonProperty("coins")]
+            public long Coins { get; set; }
+
+            [JsonProperty("gateHpLevel")]
+            public int GateHpLevel { get; set; }
+
+            [JsonProperty("crossbowDamageLevel")]
+            public int CrossbowDamageLevel { get; set; }
+
+            [JsonProperty("ultimateCooldownLevel")]
+            public int UltimateCooldownLevel { get; set; }
         }
     }
 }

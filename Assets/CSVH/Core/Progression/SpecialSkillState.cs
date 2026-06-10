@@ -19,6 +19,7 @@ namespace CSVH.Core.Progression
     public sealed class SpecialSkillState
     {
         private readonly SpecialSkillParams _p;
+        private readonly float _cooldownScale;
         private float _cooldownRemaining;
 
         /// <summary>Skill mà state này đại diện.</summary>
@@ -34,10 +35,15 @@ namespace CSVH.Core.Progression
         public int UnlockCost => Math.Max(1, _p.UnlockCost);
 
         /// <summary>Tạo state với tham số <paramref name="p"/> và cấp khởi đầu (mặc định 1).</summary>
+        /// <param name="cooldownScale">
+        /// Hệ số nhân Thời_Gian_Hồi từ nâng cấp META "Giảm hồi chiêu Ultimate" (GDD Cơ chế 2),
+        /// trong <c>(0, 1]</c>. <c>1.0</c> (mặc định) = không đổi. Giá trị ngoài miền hoặc NaN
+        /// được kẹp về <c>1.0</c>. Sàn <c>MinCooldown</c> vẫn được tôn trọng sau khi nhân.
+        /// </param>
         /// <exception cref="ArgumentOutOfRangeException">
         /// Khi <c>BaseCooldown</c>/<c>MinCooldown</c>/<c>Radius</c> ≤ 0, hoặc <paramref name="initialLevel"/> &lt; 1.
         /// </exception>
-        public SpecialSkillState(SpecialSkillKind kind, SpecialSkillParams p, int initialLevel = 1)
+        public SpecialSkillState(SpecialSkillKind kind, SpecialSkillParams p, int initialLevel = 1, float cooldownScale = 1f)
         {
             if (!(p.BaseCooldown > 0f))
                 throw new ArgumentOutOfRangeException(nameof(p), p.BaseCooldown, "BaseCooldown phải > 0.");
@@ -51,15 +57,20 @@ namespace CSVH.Core.Progression
             Kind = kind;
             _p = p;
             Level = initialLevel;
+            // Kẹp về (0, 1]: chỉ cho phép GIẢM hồi chiêu, không cho phóng to bất thường/NaN.
+            _cooldownScale = (cooldownScale > 0f && cooldownScale <= 1f) ? cooldownScale : 1f;
             _cooldownRemaining = 0f;
         }
 
         /// <summary>Sát thương mỗi lần áp lên một Quái ở cấp hiện tại.</summary>
         public float CurrentDamage => _p.BaseDamage + (Level - 1) * _p.DamageStep;
 
-        /// <summary>Thời_Gian_Hồi tối đa ở cấp hiện tại (đã kẹp sàn <c>MinCooldown</c>).</summary>
+        /// <summary>
+        /// Thời_Gian_Hồi tối đa ở cấp hiện tại. Áp công thức theo cấp, rồi nhân hệ số META
+        /// <c>cooldownScale</c> (Giảm hồi chiêu Ultimate), cuối cùng kẹp sàn <c>MinCooldown</c>.
+        /// </summary>
         public float CurrentCooldownMax =>
-            MathF.Max(_p.MinCooldown, _p.BaseCooldown - (Level - 1) * _p.CooldownStep);
+            MathF.Max(_p.MinCooldown, (_p.BaseCooldown - (Level - 1) * _p.CooldownStep) * _cooldownScale);
 
         /// <summary>Bán_Kính ảnh hưởng (không đổi theo cấp trong v1).</summary>
         public float CurrentRadius => _p.Radius;

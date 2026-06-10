@@ -56,6 +56,27 @@ namespace CSVH.Game.Spawning
         [Tooltip("Tốc độ di chuyển khi lùi-tiến cận chiến (đơn vị world / giây).")]
         [SerializeField] private float _meleeSpeed = 2.5f;
 
+        [Header("Hóa khô (boss Mộc Tinh) — chỉ bật cho cá thể boss")]
+        [Tooltip("Ngưỡng máu (tỉ lệ MaxHp) kích hoạt 'hóa khô'. 0.1 = còn 10% máu.")]
+        [SerializeField] private float _enrageHpThreshold = 0.1f;
+        [Tooltip("Giảm tỉ lệ sát thương nhận vào khi hóa khô. 0.9 = giảm 90%.")]
+        [SerializeField] private float _enrageDamageReduction = 0.9f;
+        [Tooltip("Hồi máu mỗi giây khi hóa khô.")]
+        [SerializeField] private float _enrageHealPerSecond = 60f;
+        [Tooltip("Thời gian mỗi lần hóa khô (giây).")]
+        [SerializeField] private float _enrageDurationSeconds = 5f;
+        [Tooltip("Số lần hóa khô tối đa mỗi đời. Hồi máu + tái kích hoạt vô hạn tạo vòng lặp " +
+                 "bất tử tại ngưỡng máu, nên mặc định chỉ 1 lần. 0 = không giới hạn.")]
+        [SerializeField, Min(0)] private int _enrageMaxActivations = 1;
+        [Tooltip("Màu nhuốm lên Quái khi hóa khô (gợi ý trạng thái 'khô cứng').")]
+        [SerializeField] private Color _enrageTint = new Color(0.62f, 0.47f, 0.30f, 1f);
+
+        [Header("Hiệu ứng nâng cấp trong trận (Nỏ Băng / Nỏ Độc)")]
+        [Tooltip("Màu nhuốm lên Quái khi đang bị làm chậm (Nỏ Băng).")]
+        [SerializeField] private Color _slowTint = new Color(0.55f, 0.75f, 1f, 1f);
+        [Tooltip("Màu nhuốm lên Quái khi đang trúng độc (Nỏ Độc).")]
+        [SerializeField] private Color _poisonTint = new Color(0.55f, 0.95f, 0.45f, 1f);
+
         // Bộ phát ID đơn điệu tăng dùng cho ProjectileLogic.TryRegisterHit để mỗi
         // Quái có một định danh duy nhất trong vòng đời session (Requirement 3.6).
         private static int _nextId = 1;
@@ -105,6 +126,34 @@ namespace CSVH.Game.Spawning
         // Quái đứng im: không di chuyển theo path và không thực hiện nhịp cận chiến.
         private float _stunRemaining;
 
+        // Nỏ Băng: tỷ lệ làm chậm (0..1) + thời gian còn lại. Tốc độ hiệu dụng =
+        // Speed × (1 − _slowFraction) khi _slowRemaining > 0.
+        private float _slowFraction;
+        private float _slowRemaining;
+
+        // Nỏ Độc: sát thương mỗi giây + thời gian còn lại; trừ máu dần qua TakeDamage.
+        private float _poisonDps;
+        private float _poisonRemaining;
+
+        // Boss "hóa khô" (Mộc Tinh): _enrageEnabled bật bởi spawner cho đúng cá thể boss;
+        // _petrifyRemaining > 0 trong lúc hóa khô (đứng im, giảm sát thương, hồi máu).
+        // _enrageActivations đếm số lần đã hóa khô để tôn trọng _enrageMaxActivations.
+        private bool _enrageEnabled;
+        private int _enrageActivations;
+        private float _petrifyRemaining;
+        private SpriteRenderer _renderer;
+        private Color _baseColor = Color.white;
+        private bool Petrified => _petrifyRemaining > 0f;
+
+        /// <summary>
+        /// Bật cơ chế "hóa khô" cho cá thể này (spawner gọi cho boss Mộc Tinh). Khi máu rơi
+        /// xuống <see cref="_enrageHpThreshold"/> × MaxHp, Quái hóa khô: đứng im, giảm
+        /// <see cref="_enrageDamageReduction"/> sát thương nhận vào và hồi
+        /// <see cref="_enrageHealPerSecond"/> máu/giây trong <see cref="_enrageDurationSeconds"/> giây;
+        /// tái kích hoạt mỗi lần chạm lại ngưỡng.
+        /// </summary>
+        public void EnableEnrage() => _enrageEnabled = true;
+
         /// <summary>
         /// Cấu hình Quái với <paramref name="config"/> và polyline
         /// <paramref name="path"/> đã sinh từ Core (Requirement 2.1). Vị trí thế
@@ -139,6 +188,12 @@ namespace CSVH.Game.Spawning
             // ProjectileView dùng OnTriggerEnter2D để áp sát thương — collider phải là trigger.
             var col = GetComponent<Collider2D>();
             col.isTrigger = true;
+
+            // Cache SpriteRenderer + màu gốc để nhuốm màu khi hóa khô rồi khôi phục.
+            if (TryGetComponent(out _renderer))
+            {
+                _baseColor = _renderer.color;
+            }
         }
 
         private void FixedUpdate()
@@ -150,6 +205,47 @@ namespace CSVH.Game.Spawning
             }
 
             float dt = Time.fixedDeltaTime;
+
+            // Nỏ Độc: trừ máu dần qua TakeDamage (đi chung đường kill/OnKilled, và tự nhận
+            // giảm sát thương khi boss đang hóa khô). TakeDamage có thể giết Quái → thoát sớm.
+            if (_poisonRemaining > 0f)
+            {
+                _poisonRemaining = Mathf.Max(0f, _poisonRemaining - dt);
+                TakeDamage(_poisonDps * dt);
+                if (!_isAlive)
+                {
+                    return;
+                }
+                if (_poisonRemaining <= 0f)
+                {
+                    _poisonDps = 0f;
+                    RefreshTint();
+                }
+            }
+
+            // Nỏ Băng: đếm ngược thời gian làm chậm; hết hạn thì khôi phục tốc độ + màu.
+            if (_slowRemaining > 0f)
+            {
+                _slowRemaining = Mathf.Max(0f, _slowRemaining - dt);
+                if (_slowRemaining <= 0f)
+                {
+                    _slowFraction = 0f;
+                    RefreshTint();
+                }
+            }
+
+            // Boss "hóa khô": đứng im + hồi máu, bỏ qua di chuyển/cận chiến/choáng. Hết thời
+            // gian thì khôi phục màu và trở lại bình thường (có thể hóa khô lại khi xuống ngưỡng).
+            if (Petrified)
+            {
+                _petrifyRemaining -= dt;
+                Hp = Mathf.Min(MaxHp, Hp + _enrageHealPerSecond * dt);
+                if (_petrifyRemaining <= 0f)
+                {
+                    EndPetrify();
+                }
+                return;
+            }
 
             // Skill Mũi Tên gây choáng: trong khi còn choáng, Quái đứng im (không đi, không
             // cận chiến). Đếm ngược bằng dt và bỏ qua phần di chuyển của frame này.
@@ -168,7 +264,8 @@ namespace CSVH.Game.Spawning
 
             // Requirement 2.2: WHILE Hp > 0 và chưa tới Thành, di chuyển dọc đường
             // với speed × dt. EnemyPath.AdvanceAlongPath kẹp vị trí về điểm cuối khi vượt.
-            _progress = EnemyPath.AdvanceAlongPath(_progress, _config.Speed, dt, _path);
+            // Nỏ Băng: tốc độ hiệu dụng giảm theo _slowFraction khi đang bị làm chậm.
+            _progress = EnemyPath.AdvanceAlongPath(_progress, EffectiveSpeed(_config.Speed), dt, _path);
             var p = _progress.Position;
             transform.position = new Vector3(p.X, p.Y, 0f);
 
@@ -216,7 +313,8 @@ namespace CSVH.Game.Spawning
         private void TickMelee(float dt)
         {
             Vector3 target = _advancing ? _meleeStrikePos : _meleeAnchor;
-            transform.position = Vector3.MoveTowards(transform.position, target, _meleeSpeed * dt);
+            transform.position = Vector3.MoveTowards(
+                transform.position, target, EffectiveSpeed(_meleeSpeed) * dt);
 
             if (Vector3.Distance(transform.position, target) <= 0.01f)
             {
@@ -259,13 +357,121 @@ namespace CSVH.Game.Spawning
                 damage = 0f;
             }
 
+            // Boss đang hóa khô: giảm phần lớn sát thương nhận vào.
+            if (Petrified)
+            {
+                damage *= Mathf.Clamp01(1f - _enrageDamageReduction);
+            }
+
             Hp = Mathf.Max(0f, Hp - damage);
             if (Hp <= 0f)
             {
                 _isAlive = false;
                 OnKilled?.Invoke(this, _config);
                 Destroy(gameObject);
+                return;
             }
+
+            // Boss Mộc Tinh: vừa rơi xuống ngưỡng máu (và chưa đang hóa khô) → hóa khô tức thì.
+            // Giới hạn _enrageMaxActivations lần mỗi đời (0 = vô hạn): hồi máu + tái kích hoạt
+            // vô hạn sẽ tạo vòng lặp bất tử quanh ngưỡng máu vì lượng hồi luôn vượt sát thương
+            // người chơi gây được trong lúc boss đang giảm 90% sát thương nhận vào.
+            if (_enrageEnabled && !Petrified && Hp <= _enrageHpThreshold * MaxHp
+                && (_enrageMaxActivations <= 0 || _enrageActivations < _enrageMaxActivations))
+            {
+                StartPetrify();
+            }
+        }
+
+        /// <summary>Bắt đầu "hóa khô": đặt đồng hồ hiệu ứng, đếm lượt và nhuốm màu khô cứng.</summary>
+        private void StartPetrify()
+        {
+            _enrageActivations++;
+            _petrifyRemaining = _enrageDurationSeconds;
+            RefreshTint();
+        }
+
+        /// <summary>Kết thúc "hóa khô": khôi phục màu theo các hiệu ứng còn lại.</summary>
+        private void EndPetrify()
+        {
+            _petrifyRemaining = 0f;
+            RefreshTint();
+        }
+
+        /// <summary>
+        /// Tốc độ hiệu dụng sau khi áp làm chậm của Nỏ Băng:
+        /// <c>speed × (1 − _slowFraction)</c> khi đang trong thời gian làm chậm.
+        /// </summary>
+        private float EffectiveSpeed(float speed)
+        {
+            if (_slowRemaining <= 0f || _slowFraction <= 0f)
+            {
+                return speed;
+            }
+
+            return speed * Mathf.Clamp01(1f - _slowFraction);
+        }
+
+        /// <summary>
+        /// Chọn màu nhuốm theo ưu tiên trạng thái: hóa khô &gt; độc &gt; làm chậm &gt; màu gốc.
+        /// Gọi mỗi khi một hiệu ứng bắt đầu/kết thúc để màu luôn phản ánh trạng thái hiện tại.
+        /// </summary>
+        private void RefreshTint()
+        {
+            if (_renderer == null)
+            {
+                return;
+            }
+
+            if (Petrified)
+            {
+                _renderer.color = _enrageTint;
+            }
+            else if (_poisonRemaining > 0f)
+            {
+                _renderer.color = _poisonTint;
+            }
+            else if (_slowRemaining > 0f)
+            {
+                _renderer.color = _slowTint;
+            }
+            else
+            {
+                _renderer.color = _baseColor;
+            }
+        }
+
+        /// <summary>
+        /// Áp làm chậm của Nỏ Băng (xem <see cref="IProjectileTarget.ApplySlow"/>): lấy max
+        /// từng thành phần với hiệu ứng đang có để các phát trúng liên tiếp không rút ngắn nhau.
+        /// No-op khi Quái đã chết hoặc tham số không dương.
+        /// </summary>
+        public void ApplySlow(float fraction, float seconds)
+        {
+            if (!_isAlive || fraction <= 0f || seconds <= 0f)
+            {
+                return;
+            }
+
+            _slowFraction = Mathf.Max(_slowFraction, Mathf.Clamp01(fraction));
+            _slowRemaining = Mathf.Max(_slowRemaining, seconds);
+            RefreshTint();
+        }
+
+        /// <summary>
+        /// Áp độc của Nỏ Độc (xem <see cref="IProjectileTarget.ApplyPoison"/>): lấy max DPS
+        /// và làm tươi thời gian. No-op khi Quái đã chết hoặc tham số không dương.
+        /// </summary>
+        public void ApplyPoison(float damagePerSecond, float seconds)
+        {
+            if (!_isAlive || damagePerSecond <= 0f || seconds <= 0f)
+            {
+                return;
+            }
+
+            _poisonDps = Mathf.Max(_poisonDps, damagePerSecond);
+            _poisonRemaining = Mathf.Max(_poisonRemaining, seconds);
+            RefreshTint();
         }
 
         /// <summary>

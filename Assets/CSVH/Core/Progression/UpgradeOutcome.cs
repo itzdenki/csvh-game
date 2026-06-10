@@ -15,6 +15,12 @@ namespace CSVH.Core.Progression
 
         /// <summary>Vàng không đủ; trạng thái không đổi (Requirement 6.3).</summary>
         NotEnoughGold = 1,
+
+        /// <summary>
+        /// Nâng cấp đã đạt cấp tối đa (chỉ dùng cho nâng cấp trong trận có trần,
+        /// xem <see cref="IMatchUpgradeTable.MaxLevelFor"/>); trạng thái không đổi.
+        /// </summary>
+        Maxed = 2,
     }
 
     /// <summary>

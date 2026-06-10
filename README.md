@@ -136,7 +136,9 @@ csvh/
 - **3 nhánh nâng cấp**: Công (Attack), Giáp (Armor — đồng thời tăng Máu Tối Đa), Đặc Biệt (Special).
 - **3 Skill Đặc Biệt** kích hoạt trong trận: Trống Đồng Đông Sơn, Mũi Tên An Dương Vương, Lưỡi Gươm Lê Lợi — mỗi skill có mở khóa, nâng cấp, cooldown riêng.
 - **Hệ Cấp/EXP**: tiêu diệt Quái nhận EXP → lên Cấp Thành (`RequiredExp` scale theo hệ số).
-- **Kinh tế Vàng**: Quái rớt Vàng để mua nâng cấp.
+- **Kinh tế hai tầng (Vòng lặp Nâng cấp — GDD Cơ chế 2)**:
+  - **Trong trận (Vàng)**: Quái rớt **Vàng** để mua nâng cấp **tạm thời** (Công/Giáp/Special) — reset mỗi trận.
+  - **Ngoài trận (Xu cổ — META)**: Quái rớt **Xu cổ** (`metaCoinReward`), tích lũy trong trận và **ký gửi vào kho bền vững khi thua**. Tiêu ở **Cửa Hàng Xu Cổ** trên màn Game Over để mua nâng cấp **vĩnh viễn** (giữ qua mọi trận): **Máu Cổng** (+Máu Tối Đa), **Sát thương Nỏ** (+Sát_Thương_Cơ_Bản Đạn), **Giảm hồi chiêu Ultimate** (×hệ số ≤ 1, có sàn). Xem §8.5.
 - **Điểm & Kỷ Lục**: Điểm Phiên tích lũy; Kỷ Lục lưu bền vững và chỉ ghi khi phá kỷ lục.
 - **Cấu hình ngoài build**: `waves.json` + `enemies.json` trong `StreamingAssets/` — chỉnh không cần build lại. Nạp lỗi → màn "Cấu hình lỗi" kèm vị trí line/col.
 - **HUD tiếng Việt** + màn "Bạn đã thua cuộc" (hiện Điểm Phiên, Kỷ Lục, nút Chơi lại).
@@ -202,14 +204,17 @@ Hai chế độ kết thúc đợt (cấu hình trong GameSceneRoot):
 
 Cấu hình trong [enemies.json](file:///d:/Unity/csvh/Assets/StreamingAssets/enemies.json). Thứ tự mở khóa theo độ khó (mỗi 5 đợt thêm 1 loại):
 
-| # | Id | Tên | Máu | Tốc độ | ST cận chiến | Kháng | Vàng | EXP | Điểm |
-|---|---|---|---|---|---|---|---|---|---|
-| 1 | `Hồ_Tinh` | Hồ Tinh | 15 | 2.4 | 5 | 0 | 5 | 8 | 10 |
-| 2 | `Quân_Tống` | Quân Tống | 35 | 1.4 | 8 | 1 | 8 | 10 | 15 |
-| 3 | `Quân_Nguyên_Mông` | Quân Nguyên Mông | 50 | 1.9 | 10 | 2 | 12 | 14 | 20 |
-| 4 | `Mộc_Tinh` | Mộc Tinh | 70 | 0.9 | 6 | 3 | 10 | 12 | 18 |
-| 5 | `Thuồng_Luồng` | Thuồng Luồng | 110 | 0.8 | 18 | 4 | 18 | 22 | 30 |
-| 6 | `Quỷ_Một_Giò` | Quỷ Một Giò (BOSS) | 700 | 1.0 | 95 | 8 | 80 | 120 | 200 |
+| # | Id | Tên | Máu | Tốc độ | ST cận chiến | Kháng | Vàng | EXP | Điểm | Xu cổ |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | `Hồ_Tinh` | Hồ Tinh | 15 | 2.4 | 5 | 0 | 5 | 8 | 10 | 1 |
+| 2 | `Quân_Tống` | Quân Tống | 35 | 1.4 | 8 | 1 | 8 | 10 | 15 | 1 |
+| 3 | `Quân_Nguyên_Mông` | Quân Nguyên Mông | 50 | 1.9 | 10 | 2 | 12 | 14 | 20 | 2 |
+| 4 | `Mộc_Tinh` | Mộc Tinh | 70 | 0.9 | 6 | 3 | 10 | 12 | 18 | 2 |
+| 5 | `Thuồng_Luồng` | Thuồng Luồng | 110 | 0.8 | 18 | 4 | 18 | 22 | 30 | 3 |
+| 6 | `Quỷ_Một_Giò` | Quỷ Một Giò (BOSS) | 700 | 1.0 | 95 | 8 | 80 | 120 | 200 | 25 |
+
+> [!NOTE]
+> Cột **Xu cổ** (`metaCoinReward`) là **trường tùy chọn** trong `enemies.json` — thiếu khóa thì mặc định `0` (tương thích ngược cấu hình cũ). Đây là tiền META tiêu ở Cửa Hàng ngoài trận (§8.5).
 
 > [!NOTE]
 > `Id` giữ nguyên **có dấu tiếng Việt** trong JSON và code. Riêng tên file sprite dùng ASCII không dấu (xem [PROMPT_IMAGE.md](file:///d:/Unity/csvh/PROMPT_IMAGE.md) — hướng dẫn sinh sprite + palette Đông Sơn).
@@ -248,6 +253,17 @@ Tất cả công thức nằm trong tầng Core (pure, dễ test). Các bất bi
 ### Hình học sân — [FieldPoint](file:///d:/Unity/csvh/Assets/CSVH/Core/Common/FieldPoint.cs)
 - Cổng spawn hợp lệ: `X ≤ 0 ∨ Y ≥ 0` (Tây/Tây Bắc). Vị trí Thành hợp lệ: `X > 0 ∧ Y < 0` (Đông Nam).
 
+### 8.5 Nâng cấp META (Xu cổ) — [MetaProgressionState](file:///d:/Unity/csvh/Assets/CSVH/Core/Progression/MetaProgressionState.cs)
+Tầng tiền **vĩnh viễn** (GDD Cơ chế 2), pure C# và test bằng PBT như mọi hệ Core. Tham số do designer chỉnh trong [MetaUpgradeTableSO](file:///d:/Unity/csvh/Assets/CSVH/Game/Scripts/Data/MetaUpgradeTableSO.cs) (`MetaUpgradeTable.asset`).
+- **Kiếm Xu cổ**: `GameSession.MetaCoinsEarned += enemy.MetaCoinReward` mỗi lần diệt Quái (đơn điệu, kẹp `int.MaxValue`). [GameSceneRoot](file:///d:/Unity/csvh/Assets/CSVH/Game/Scripts/Bootstrap/GameSceneRoot.cs) **ký gửi** vào kho bền vững **một lần khi Game Over** (`BankMetaCoins`).
+- **Giá mua**: `cost = max(1, round(baseCost × growth^level))` mỗi nhánh; chặn khi chạm `MaxLevelFor(track)`. `TryBuy` thiếu Xu/chạm trần ⇒ **không đổi trạng thái**.
+- **Hiệu ứng áp vào trận mới** (qua `MetaBonuses`, đọc một lần ở `Start`):
+  - **Máu Cổng**: `initialMaxHp += GateHpLevel × GateHpPerLevel`.
+  - **Sát thương Nỏ**: `TowerView.extraBaseDamage += CrossbowDamageLevel × CrossbowDamagePerLevel` (cộng vào Sát_Thương_Cơ_Bản Đạn).
+  - **Giảm hồi chiêu Ultimate**: `cooldownScale = clamp(1 − UltCdLevel × CooldownReductionPerLevel, 1 − MaxCooldownReduction, 1)`, nhân vào `SpecialSkillState.CurrentCooldownMax` (sàn `MinCooldown` vẫn được tôn trọng).
+- **UI**: Cửa Hàng Xu Cổ dựng trong [HUDController](file:///d:/Unity/csvh/Assets/CSVH/Game/Scripts/UI/HUDController.cs) (`ShowMetaShopModal`), mở từ nút trên màn Game Over; mua → ghi lưu ngay → refresh.
+- **Test**: [MetaProgressionProperty](file:///d:/Unity/csvh/Assets/CSVH/Tests/EditMode/Properties/MetaProgressionProperty.cs) + [MetaProgressStorageRoundTripProperty](file:///d:/Unity/csvh/Assets/CSVH/Tests/EditMode/Properties/MetaProgressStorageRoundTripProperty.cs).
+
 ---
 
 ## 9. Cấu hình dữ liệu
@@ -278,6 +294,7 @@ Mảng các đợt. Mỗi đợt có `waveNumber`, `preparationSeconds`, `spawnG
 |---|---|---|
 | `csvh.volume.music` / `csvh.volume.sfx` | float [0,1] | PlayerPrefs |
 | `highscore.json` | `{ "highScore": <long> }` | `Application.persistentDataPath` (fallback `0` nếu hỏng) |
+| `meta_progress.json` | `{ "coins": <long>, "gateHpLevel": <int>, "crossbowDamageLevel": <int>, "ultimateCooldownLevel": <int> }` | `Application.persistentDataPath` (fallback `MetaProgressSnapshot.Empty` nếu hỏng) — tiền META Xu cổ (§8.5) |
 
 ---
 

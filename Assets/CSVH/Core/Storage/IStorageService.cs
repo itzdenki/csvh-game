@@ -65,5 +65,21 @@ namespace CSVH.Core.Storage
         /// (Property 20 round-trip — Requirement 12.1, 12.2, 12.3).
         /// </summary>
         void WriteVolume(VolumeChannel channel, float value);
+
+        /// <summary>
+        /// Đọc tiến trình META (Xu cổ + cấp 3 nhánh nâng cấp vĩnh viễn) — GDD Cơ chế 2.
+        /// Trả <see cref="MetaProgressSnapshot.Empty"/> khi chưa có dữ liệu; triển khai
+        /// production fallback về <c>Empty</c> + log cảnh báo khi parse thất bại
+        /// (giống Kỷ_Lục, Requirement 12.4). KHÔNG được trả <c>null</c>.
+        /// </summary>
+        MetaProgressSnapshot ReadMetaProgress();
+
+        /// <summary>
+        /// Ghi đè tiến trình META. Sau lần gọi này, <see cref="ReadMetaProgress"/> PHẢI trả về
+        /// cùng giá trị (round-trip, đồng dạng Property 19 cho Kỷ_Lục). Triển khai PHẢI kẹp
+        /// mọi trường về <c>≥ 0</c> trước khi lưu.
+        /// </summary>
+        /// <param name="snapshot">Trạng thái META mới; không được <c>null</c>.</param>
+        void WriteMetaProgress(MetaProgressSnapshot snapshot);
     }
 }

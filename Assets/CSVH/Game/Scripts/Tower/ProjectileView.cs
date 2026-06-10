@@ -57,6 +57,13 @@ namespace CSVH.Game.Tower
         private Vector2 _velocity;
         private float _baseDamage;
         private float _attackMultiplier;
+
+        // Hiệu ứng chạm từ nâng cấp trong trận (Nỏ Băng / Nỏ Độc). 0 = không có hiệu ứng.
+        private float _slowFraction;
+        private float _slowSeconds;
+        private float _poisonDpsFraction; // % sát thương THỰC của phát bắn, gây độc mỗi giây
+        private float _poisonSeconds;
+
         private bool _initialized;
         private bool _consumed; // đã ghi nhận trúng Quái và sẽ tự huỷ trong cùng frame
 
@@ -86,14 +93,38 @@ namespace CSVH.Game.Tower
         /// <param name="velocity">Vận_Tốc Đạn theo trục thế giới (Requirement 3.2).</param>
         /// <param name="baseDamage">Sát_Thương_Cơ_Bản Đạn; <c>≥ 0</c>.</param>
         /// <param name="attackMultiplier">Hệ_Số_Công của Thành = <c>1 + cấp × bước</c> (Requirement 6.5).</param>
-        public void Initialize(FieldGeometry geometry, Vector2 velocity, float baseDamage, float attackMultiplier)
+        /// <param name="slowFraction">Tỷ lệ làm chậm Nỏ Băng (0..1); 0 = không làm chậm.</param>
+        /// <param name="slowSeconds">Thời gian làm chậm (giây).</param>
+        /// <param name="poisonDpsFraction">% sát thương thực của phát bắn gây độc mỗi giây; 0 = không độc.</param>
+        /// <param name="poisonSeconds">Thời gian độc (giây).</param>
+        public void Initialize(
+            FieldGeometry geometry,
+            Vector2 velocity,
+            float baseDamage,
+            float attackMultiplier,
+            float slowFraction = 0f,
+            float slowSeconds = 0f,
+            float poisonDpsFraction = 0f,
+            float poisonSeconds = 0f)
         {
             _geometry = geometry;
             _velocity = velocity;
             _baseDamage = baseDamage;
             _attackMultiplier = attackMultiplier;
+            _slowFraction = slowFraction;
+            _slowSeconds = slowSeconds;
+            _poisonDpsFraction = poisonDpsFraction;
+            _poisonSeconds = poisonSeconds;
             _logic = new ProjectileLogic();
             _initialized = true;
+
+            // Xoay mũi tên (Bullet) theo hướng bay. Hình Bullet hướng lên (+Y) nên trừ 90°
+            // để +Y trùng vector vận tốc. Chỉ ảnh hưởng hiển thị (CircleCollider2D bất biến theo góc).
+            if (velocity.sqrMagnitude > 1e-6f)
+            {
+                float angleDeg = Mathf.Atan2(velocity.y, velocity.x) * Mathf.Rad2Deg - 90f;
+                transform.rotation = Quaternion.Euler(0f, 0f, angleDeg);
+            }
         }
 
         private void FixedUpdate()
@@ -129,6 +160,17 @@ namespace CSVH.Game.Tower
             var damage = CombatResolver.ProjectileDamage(
                 new DamageInputs(_baseDamage, _attackMultiplier, target.Resistance));
             target.TakeDamage(damage);
+
+            // Nâng cấp trong trận: Nỏ Băng làm chậm, Nỏ Độc gây DoT theo % sát thương THỰC
+            // của phát bắn này (định nghĩa GDD "phần trăm sát thương hiện tại của Nỏ Thần").
+            if (_slowFraction > 0f && _slowSeconds > 0f)
+            {
+                target.ApplySlow(_slowFraction, _slowSeconds);
+            }
+            if (_poisonDpsFraction > 0f && _poisonSeconds > 0f && damage > 0f)
+            {
+                target.ApplyPoison(_poisonDpsFraction * damage, _poisonSeconds);
+            }
 
             // Tự huỷ trong cùng frame sau khi đã chạm (Requirement 3.4 — "đã chạm Quái cùng frame").
             _consumed = true;

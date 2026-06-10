@@ -92,7 +92,8 @@ namespace CSVH.Tests.Edit.Properties
             GenNonNegativeFloat().SelectMany(resist =>
             GenNonNegativeIntCapped().SelectMany(gold =>
             GenNonNegativeIntCapped().SelectMany(exp =>
-            GenNonNegativeIntCapped().Select(score =>
+            GenNonNegativeIntCapped().SelectMany(score =>
+            GenNonNegativeIntCapped().Select(metaCoin =>
                 new EnemyConfig(
                     Id: "?",
                     LocalizedName: name,
@@ -102,7 +103,8 @@ namespace CSVH.Tests.Edit.Properties
                     Resistance: resist,
                     GoldReward: gold,
                     ExpReward: exp,
-                    ScoreReward: score)))))))));
+                    ScoreReward: score,
+                    MetaCoinReward: metaCoin))))))))));
 
         private static Gen<SpawnEntry> GenSpawnEntry(IReadOnlyList<string> enemyIds) =>
             Gen.Elements(enemyIds.ToArray()).SelectMany(id =>

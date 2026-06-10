@@ -101,7 +101,7 @@ namespace CSVH.Core.Config
         /// <summary>
         /// Ghi một <see cref="EnemyConfig"/> theo thứ tự khóa cố định
         /// <c>id, localizedName, maxHp, speed, meleeDamage, resistance,
-        /// goldReward, expReward, scoreReward</c>.
+        /// goldReward, expReward, scoreReward, metaCoinReward</c>.
         /// </summary>
         private static void WriteEnemy(JsonTextWriter writer, EnemyConfig e)
         {
@@ -133,6 +133,9 @@ namespace CSVH.Core.Config
 
             writer.WritePropertyName("scoreReward");
             writer.WriteValue(e.ScoreReward);
+
+            writer.WritePropertyName("metaCoinReward");
+            writer.WriteValue(e.MetaCoinReward);
 
             writer.WriteEndObject();
         }

@@ -22,21 +22,55 @@ namespace CSVH.Game.Data
         [System.Serializable]
         public struct Entry
         {
-            [Tooltip("Khớp đúng với EnemyConfig.Id trong enemies.json (vd. \"Hồ_Tinh\").")]
+            [Tooltip("Khớp đúng với EnemyConfig.Id trong enemies.json (vd. \"Mot_Go\").")]
             public string Id;
 
             [Tooltip("Sprite hiển thị cho Loại_Quái này.")]
             public Sprite Sprite;
+
+            [Tooltip("Hệ số kích thước riêng (nhân lên trên độ cao chuẩn hóa của spawner). " +
+                     "≤ 0 được coi là 1. Vd. boss = 2.5 để to hơn, quái nhỏ < 1.")]
+            public float Scale;
         }
 
         [SerializeField] private List<Entry> _entries = new List<Entry>();
 
         private Dictionary<string, Sprite> _cache;
+        private Dictionary<string, float> _scaleCache;
 
         private void OnEnable()
         {
             // Reset cache khi designer chỉnh entries trong Editor.
             _cache = null;
+            _scaleCache = null;
+        }
+
+        private void EnsureCache()
+        {
+            if (_cache != null)
+            {
+                return;
+            }
+
+            int n = _entries?.Count ?? 0;
+            _cache = new Dictionary<string, Sprite>(n, System.StringComparer.Ordinal);
+            _scaleCache = new Dictionary<string, float>(n, System.StringComparer.Ordinal);
+            for (int i = 0; i < n; i++)
+            {
+                var e = _entries[i];
+                if (string.IsNullOrEmpty(e.Id))
+                {
+                    continue;
+                }
+                if (e.Sprite != null && !_cache.ContainsKey(e.Id))
+                {
+                    _cache[e.Id] = e.Sprite;
+                }
+                if (!_scaleCache.ContainsKey(e.Id))
+                {
+                    _scaleCache[e.Id] = e.Scale > 0f ? e.Scale : 1f;
+                }
+            }
         }
 
         /// <summary>
@@ -46,21 +80,19 @@ namespace CSVH.Game.Data
         public Sprite GetSprite(string id)
         {
             if (string.IsNullOrEmpty(id) || _entries == null) return null;
-
-            if (_cache == null)
-            {
-                _cache = new Dictionary<string, Sprite>(_entries.Count, System.StringComparer.Ordinal);
-                for (int i = 0; i < _entries.Count; i++)
-                {
-                    var e = _entries[i];
-                    if (!string.IsNullOrEmpty(e.Id) && e.Sprite != null && !_cache.ContainsKey(e.Id))
-                    {
-                        _cache[e.Id] = e.Sprite;
-                    }
-                }
-            }
-
+            EnsureCache();
             return _cache.TryGetValue(id, out var sprite) ? sprite : null;
+        }
+
+        /// <summary>
+        /// Hệ số kích thước riêng cho Loại_Quái <paramref name="id"/> (mặc định <c>1</c> khi
+        /// không cấu hình hoặc ≤ 0). Spawner nhân hệ số này lên độ cao chuẩn hóa.
+        /// </summary>
+        public float GetScale(string id)
+        {
+            if (string.IsNullOrEmpty(id) || _entries == null) return 1f;
+            EnsureCache();
+            return _scaleCache.TryGetValue(id, out var s) && s > 0f ? s : 1f;
         }
     }
 }

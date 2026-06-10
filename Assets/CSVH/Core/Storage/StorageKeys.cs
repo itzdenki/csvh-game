@@ -36,6 +36,14 @@ namespace CSVH.Core.Storage
         public const string HighScoreFile = "highscore.json";
 
         /// <summary>
+        /// Tên tệp tiến trình META (Xu cổ) lưu cạnh <c>Application.persistentDataPath</c>
+        /// dưới dạng JSON <c>{ "coins": &lt;long&gt;, "gateHpLevel": &lt;int&gt;,
+        /// "crossbowDamageLevel": &lt;int&gt;, "ultimateCooldownLevel": &lt;int&gt; }</c>
+        /// (GDD Cơ chế 2 — Meta Upgrade). Như Kỷ_Lục, Core không nắm đường dẫn tuyệt đối.
+        /// </summary>
+        public const string MetaProgressFile = "meta_progress.json";
+
+        /// <summary>
         /// Trả về khóa <c>PlayerPrefs</c> tương ứng <paramref name="channel"/>.
         /// Là API thuần để dùng được từ cả Core test (<c>InMemoryStorageService</c>)
         /// lẫn lớp Unity, đảm bảo nhất quán khóa (Property 20 round-trip).

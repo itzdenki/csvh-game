@@ -73,6 +73,14 @@ namespace CSVH.Core.Game
         public bool IsGameOver => CurrentHp <= 0;
 
         /// <summary>
+        /// Tổng Xu cổ (tiền META vĩnh viễn) kiếm được trong trận này — GDD Cơ chế 2.
+        /// Cộng dồn mỗi khi tiêu diệt Quái (<see cref="OnEnemyKilled"/>); đơn điệu không giảm,
+        /// kẹp tại <see cref="int.MaxValue"/>. Composition root "ký gửi" số này vào kho META
+        /// bền vững khi trận kết thúc (KHÔNG được tiêu trong trận — chỉ tiêu ở màn ngoài trận).
+        /// </summary>
+        public int MetaCoinsEarned { get; private set; }
+
+        /// <summary>
         /// Tạo một phiên trận đấu mới với <paramref name="initialMaxHp"/> là Máu_Tối_Đa và
         /// Máu_Hiện_Tại khởi đầu (Requirement 5.1).
         /// </summary>
@@ -197,17 +205,58 @@ namespace CSVH.Core.Game
         /// </summary>
         /// <param name="enemy">Cấu hình Quái đã chết; không được <c>null</c>.</param>
         /// <exception cref="ArgumentNullException">Khi <paramref name="enemy"/> là <c>null</c>.</exception>
-        public void OnEnemyKilled(EnemyConfig enemy)
+        public void OnEnemyKilled(EnemyConfig enemy) => OnEnemyKilled(enemy, creditGoldNow: true);
+
+        /// <summary>
+        /// Phiên bản cho phép HOÃN cộng Vàng. Khi <paramref name="creditGoldNow"/> là
+        /// <c>false</c>, chỉ cộng EXP/Điểm/Xu cổ ngay; còn <see cref="EnemyConfig.GoldReward"/>
+        /// để tầng view tự cộng sau qua <see cref="AddGold"/> khi đồng Xu rơi bay tới ô Vàng
+        /// trên HUD. Mặc định <c>true</c> giữ nguyên hành vi cũ (cộng tất cả ngay).
+        /// </summary>
+        public void OnEnemyKilled(EnemyConfig enemy, bool creditGoldNow)
         {
             if (enemy is null)
             {
                 throw new ArgumentNullException(nameof(enemy));
             }
 
-            Upgrades.AddGold(enemy.GoldReward);
+            if (creditGoldNow)
+            {
+                Upgrades.AddGold(enemy.GoldReward);
+            }
             Leveling.AddExp(enemy.ExpReward);
             Score.AddEnemyKill(enemy.ScoreReward);
+
+            // GDD Cơ chế 2: Quái rớt Xu cổ (tiền META) — tích lũy trong trận, ký gửi khi kết thúc.
+            // Kẹp tại int.MaxValue để đơn điệu kể cả chuỗi diệt cực dài.
+            long earned = (long)MetaCoinsEarned + enemy.MetaCoinReward;
+            MetaCoinsEarned = earned > int.MaxValue ? int.MaxValue : (int)earned;
         }
+
+        /// <summary>
+        /// Hồi <paramref name="amount"/> Máu cho Thành (nâng cấp trong trận "Hồi Phục Thành").
+        /// Kẹp tại <see cref="MaxHp"/> để giữ bất biến <c>0 ≤ CurrentHp ≤ MaxHp</c> (Property 11).
+        /// No-op khi đã <see cref="IsGameOver"/> (Thành sụp đổ thì không hồi lại) hoặc amount ≤ 0.
+        /// </summary>
+        /// <param name="amount">Lượng Máu hồi; giá trị ≤ 0 là no-op.</param>
+        public void Heal(int amount)
+        {
+            if (amount <= 0 || IsGameOver)
+            {
+                return;
+            }
+
+            long proposed = (long)CurrentHp + amount;
+            int clamped = proposed > int.MaxValue ? int.MaxValue : (int)proposed;
+            CurrentHp = CombatResolver.ClampHp(clamped, MaxHp);
+        }
+
+        /// <summary>
+        /// Cộng <paramref name="amount"/> Vàng vào ví (uỷ thác <see cref="UpgradeSystem.AddGold"/>).
+        /// Dùng để cộng Phần_Thưởng_Vàng bị hoãn khi đồng Xu rơi bay tới ô Vàng trên HUD
+        /// (xem <see cref="OnEnemyKilled(EnemyConfig, bool)"/>).
+        /// </summary>
+        public void AddGold(int amount) => Upgrades.AddGold(amount);
 
         /// <summary>
         /// Tick một bước thời gian. Hiện tại chỉ forward <paramref name="dt"/> cho

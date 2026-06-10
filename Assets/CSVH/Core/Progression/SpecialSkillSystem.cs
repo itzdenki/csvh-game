@@ -24,15 +24,19 @@ namespace CSVH.Core.Progression
         /// Tạo hệ thống với bảng tham số <paramref name="table"/>. Khởi tạo cả 3 skill ở cấp 1
         /// (dùng được ngay từ đầu trận).
         /// </summary>
+        /// <param name="cooldownScale">
+        /// Hệ số nhân Thời_Gian_Hồi áp cho cả 3 skill từ nâng cấp META "Giảm hồi chiêu Ultimate"
+        /// (GDD Cơ chế 2), trong <c>(0, 1]</c>. <c>1.0</c> (mặc định) = không đổi.
+        /// </param>
         /// <exception cref="ArgumentNullException">Khi <paramref name="table"/> null.</exception>
-        public SpecialSkillSystem(ISpecialSkillTable table)
+        public SpecialSkillSystem(ISpecialSkillTable table, float cooldownScale = 1f)
         {
             if (table is null) throw new ArgumentNullException(nameof(table));
 
             _states = new Dictionary<SpecialSkillKind, SpecialSkillState>(SpecialSkillKinds.All.Length);
             foreach (var kind in SpecialSkillKinds.All)
             {
-                _states[kind] = new SpecialSkillState(kind, table.ParamsFor(kind));
+                _states[kind] = new SpecialSkillState(kind, table.ParamsFor(kind), initialLevel: 1, cooldownScale: cooldownScale);
             }
         }
 

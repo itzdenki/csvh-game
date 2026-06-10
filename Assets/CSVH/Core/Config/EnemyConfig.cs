@@ -18,6 +18,11 @@ namespace CSVH.Core.Config
     /// <param name="GoldReward">Phần_Thưởng_Vàng khi tiêu diệt. Ràng buộc <c>≥ 0</c>.</param>
     /// <param name="ExpReward">Phần_Thưởng_EXP khi tiêu diệt. Ràng buộc <c>≥ 0</c>.</param>
     /// <param name="ScoreReward">Phần_Thưởng_Điểm khi tiêu diệt. Ràng buộc <c>≥ 0</c>.</param>
+    /// <param name="MetaCoinReward">
+    /// Phần_Thưởng_Xu_Cổ (tiền META vĩnh viễn) khi tiêu diệt — GDD Cơ chế 2. Ràng buộc
+    /// <c>≥ 0</c>. Trường tùy chọn trong <c>enemies.json</c>: thiếu khóa <c>metaCoinReward</c>
+    /// thì mặc định <c>0</c> (tương thích ngược với cấu hình cũ).
+    /// </param>
     public sealed record EnemyConfig(
         string Id,
         string LocalizedName,
@@ -27,5 +32,6 @@ namespace CSVH.Core.Config
         float Resistance,
         int GoldReward,
         int ExpReward,
-        int ScoreReward);
+        int ScoreReward,
+        int MetaCoinReward = 0);
 }

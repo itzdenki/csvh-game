@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 96a8e6e8406be7549b953e6b7cbb150c, type: 3}
+  m_Name: MatchUpgradeTable
+  m_EditorClassIdentifier: CSVH.Game::CSVH.Game.Data.MatchUpgradeTableSO
+  _damagePerLevel: 0.05
+  _attackSpeedPerLevel: 0.05
+  _critChancePerLevel: 0.05
+  _critChanceCap: 1
+  _baseCritMultiplier: 1.5
+  _critDamagePerLevel: 0.25
+  _multishotMaxLevel: 4
+  _multishotSpreadDegrees: 7
+  _projectileSpeedPerLevel: 0.05
+  _fortifyHpPerLevel: 0.05
+  _regenHpPerLevel: 5
+  _iceSlowBase: 0.05
+  _iceSlowPerLevel: 0.1
+  _iceSlowCap: 0.8
+  _iceSlowDurationSeconds: 2
+  _poisonDpsPerLevel: 0.05
+  _poisonDurationSeconds: 3
+  _goldRushChanceBase: 0.075
+  _goldRushChancePerLevel: 0.025
+  _goldRushChanceCap: 0.5
+  _goldRushBonusFraction: 1
+  _stepCosts: 280000004600000078000000c80000004a01000008020000
+  _infiniteCostGrowth: 1.3
+  _costWeights:
+  - 1
+  - 1
+  - 1
+  - 3
+  - 0.5
+  - 0.6
+  - 1
+  - 1.2
+  - 1.1
+  - 1

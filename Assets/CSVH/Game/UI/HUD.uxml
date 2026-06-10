@@ -26,10 +26,7 @@
             <ui:Label name="GoldLabel" class="hud-text hud-gold" />
             <ui:VisualElement name="ExpProgress" class="hud-exp-progress" />
             <ui:VisualElement name="UpgradeIcons" class="hud-upgrade-icons">
-                <ui:Button name="IconAttack" class="hud-icon" text="Công" />
-                <ui:Button name="IconArmor" class="hud-icon" text="Giáp" />
-                <ui:Button name="IconSpecial" class="hud-icon" text="Đặc biệt" />
-                <ui:Button name="IconExp" class="hud-icon" text="EXP" />
+                <ui:Button name="ButtonUpgradeHub" class="hud-icon hud-upgrade-hub-button" text="Nâng Cấp" />
             </ui:VisualElement>
             <ui:Label name="HpLabel" class="hud-text" />
             <ui:VisualElement name="HpBar" class="hud-hpbar">

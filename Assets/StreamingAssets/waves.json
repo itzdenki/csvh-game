@@ -7,7 +7,7 @@
       { "x": 0.0, "y": 6.0 }
     ],
     "spawns": [
-      { "enemyId": "Hồ_Tinh", "count": 5, "spawnIntervalSeconds": 1.8 }
+      { "enemyId": "Mot_Go", "count": 5, "spawnIntervalSeconds": 1.0 }
     ]
   },
   {
@@ -19,8 +19,8 @@
       { "x": 0.0, "y": 6.0 }
     ],
     "spawns": [
-      { "enemyId": "Hồ_Tinh", "count": 7, "spawnIntervalSeconds": 1.4 },
-      { "enemyId": "Quân_Tống", "count": 3, "spawnIntervalSeconds": 2.5 }
+      { "enemyId": "Mot_Go", "count": 6, "spawnIntervalSeconds": 1.0 },
+      { "enemyId": "Bu_Nhin_Rom", "count": 3, "spawnIntervalSeconds": 1.6 }
     ]
   },
   {
@@ -33,9 +33,9 @@
       { "x": 4.0, "y": 5.0 }
     ],
     "spawns": [
-      { "enemyId": "Quân_Tống", "count": 6, "spawnIntervalSeconds": 1.6 },
-      { "enemyId": "Quân_Nguyên_Mông", "count": 4, "spawnIntervalSeconds": 2.0 },
-      { "enemyId": "Hồ_Tinh", "count": 6, "spawnIntervalSeconds": 1.2 }
+      { "enemyId": "Mot_Go", "count": 6, "spawnIntervalSeconds": 1.0 },
+      { "enemyId": "Bu_Nhin_Rom", "count": 4, "spawnIntervalSeconds": 1.6 },
+      { "enemyId": "Goc_Cay_Ma", "count": 2, "spawnIntervalSeconds": 2.6 }
     ]
   },
   {
@@ -48,9 +48,10 @@
       { "x": 4.0, "y": 5.0 }
     ],
     "spawns": [
-      { "enemyId": "Quân_Nguyên_Mông", "count": 8, "spawnIntervalSeconds": 1.4 },
-      { "enemyId": "Mộc_Tinh", "count": 4, "spawnIntervalSeconds": 2.6 },
-      { "enemyId": "Quân_Tống", "count": 5, "spawnIntervalSeconds": 1.7 }
+      { "enemyId": "Mot_Go", "count": 6, "spawnIntervalSeconds": 1.0 },
+      { "enemyId": "Bu_Nhin_Rom", "count": 4, "spawnIntervalSeconds": 1.6 },
+      { "enemyId": "Goc_Cay_Ma", "count": 2, "spawnIntervalSeconds": 2.6 },
+      { "enemyId": "Qua_Den", "count": 2, "spawnIntervalSeconds": 2.2 }
     ]
   },
   {
@@ -63,10 +64,7 @@
       { "x": 4.0, "y": 5.0 }
     ],
     "spawns": [
-      { "enemyId": "Thuồng_Luồng", "count": 3, "spawnIntervalSeconds": 3.0 },
-      { "enemyId": "Quân_Nguyên_Mông", "count": 6, "spawnIntervalSeconds": 1.4 },
-      { "enemyId": "Mộc_Tinh", "count": 4, "spawnIntervalSeconds": 2.0 },
-      { "enemyId": "Quỷ_Một_Giò", "count": 1, "spawnIntervalSeconds": 5.0 }
+      { "enemyId": "Moc_Tinh", "count": 1, "spawnIntervalSeconds": 3.0 }
     ]
   }
 ]

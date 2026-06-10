@@ -135,6 +135,12 @@ namespace CSVH.Core.Config
                 var scoreR = ReadIntAtLeast(obj, "scoreReward", elemPath, minInclusive: 0);
                 if (scoreR.IsErr) return Result<IReadOnlyList<EnemyConfig>, ConfigError>.Err(scoreR.Error);
 
+                // Phần_Thưởng_Xu_Cổ (META) — trường tùy chọn (GDD Cơ chế 2). Thiếu khóa thì
+                // mặc định 0 để tương thích ngược với enemies.json cũ; khi có khóa vẫn phải
+                // là số nguyên ≥ 0.
+                var metaCoinR = ReadOptionalIntAtLeast(obj, "metaCoinReward", elemPath, minInclusive: 0, defaultValue: 0);
+                if (metaCoinR.IsErr) return Result<IReadOnlyList<EnemyConfig>, ConfigError>.Err(metaCoinR.Error);
+
                 list.Add(new EnemyConfig(
                     Id: idR.Value,
                     LocalizedName: nameR.Value,
@@ -144,7 +150,8 @@ namespace CSVH.Core.Config
                     Resistance: resR.Value,
                     GoldReward: goldR.Value,
                     ExpReward: expR.Value,
-                    ScoreReward: scoreR.Value));
+                    ScoreReward: scoreR.Value,
+                    MetaCoinReward: metaCoinR.Value));
             }
             return Result<IReadOnlyList<EnemyConfig>, ConfigError>.Ok(list);
         }
@@ -391,6 +398,19 @@ namespace CSVH.Core.Config
                     $"{parentPath}.{key}", l, c, $"Field '{key}' must be ≥ {minInclusive} (got {value})"));
             }
             return Result<int, ConfigError>.Ok(value);
+        }
+
+        // Như ReadIntAtLeast nhưng khóa là TÙY CHỌN: thiếu (hoặc null) → trả defaultValue;
+        // có mặt thì áp đúng ràng buộc "integer ≥ minInclusive". Dùng cho các trường thêm
+        // sau (vd metaCoinReward) để cấu hình cũ vẫn nạp được (Requirement tương thích ngược).
+        private static Result<int, ConfigError> ReadOptionalIntAtLeast(
+            JObject obj, string key, string parentPath, int minInclusive, int defaultValue)
+        {
+            if (!obj.TryGetValue(key, out var token) || token is null || token.Type == JTokenType.Null)
+            {
+                return Result<int, ConfigError>.Ok(defaultValue);
+            }
+            return ReadIntAtLeast(obj, key, parentPath, minInclusive);
         }
 
         // ──────────────────────────── Misc helpers ───────────────────────

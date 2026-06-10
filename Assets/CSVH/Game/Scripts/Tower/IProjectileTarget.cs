@@ -30,5 +30,19 @@ namespace CSVH.Game.Tower
 
         /// <summary>Trừ Máu_Hiện_Tại của Quái theo lượng <paramref name="damage"/> đã được kẹp <c>≥ 0</c>.</summary>
         void TakeDamage(float damage);
+
+        /// <summary>
+        /// Áp hiệu ứng làm chậm (nâng cấp trong trận "Nỏ Băng"): giảm
+        /// <paramref name="fraction"/> (0..1) tốc độ di chuyển trong <paramref name="seconds"/> giây.
+        /// Các lần áp chồng nhau lấy max từng thành phần (không cộng dồn).
+        /// </summary>
+        void ApplySlow(float fraction, float seconds);
+
+        /// <summary>
+        /// Áp hiệu ứng độc (nâng cấp trong trận "Nỏ Độc"): gây <paramref name="damagePerSecond"/>
+        /// sát thương mỗi giây trong <paramref name="seconds"/> giây. Lần áp mới làm tươi lại
+        /// thời gian và lấy max DPS (không cộng dồn).
+        /// </summary>
+        void ApplyPoison(float damagePerSecond, float seconds);
     }
 }

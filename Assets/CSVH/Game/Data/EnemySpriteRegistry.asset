@@ -13,15 +13,18 @@ MonoBehaviour:
   m_Name: EnemySpriteRegistry
   m_EditorClassIdentifier: CSVH.Game::CSVH.Game.Data.EnemySpriteRegistrySO
   _entries:
-  - Id: "H\u1ED3_Tinh"
-    Sprite: {fileID: 5588915129000528388, guid: 880d1e3171410ac4681505a6c97033e0, type: 3}
-  - Id: "Qu\xE2n_T\u1ED1ng"
-    Sprite: {fileID: 3948124394010152983, guid: 7df88b5d2daec0c4bb32a76ff74cf649, type: 3}
-  - Id: "Qu\xE2n_Nguy\xEAn_M\xF4ng"
-    Sprite: {fileID: 5912185280047466582, guid: 438f51274b957164fa8f537a55c05dea, type: 3}
-  - Id: "M\u1ED9c_Tinh"
-    Sprite: {fileID: -9080712316459975259, guid: dc5804a7b35d51c4eb53eb0bbeac3977, type: 3}
-  - Id: "Thu\u1ED3ng_Lu\u1ED3ng"
-    Sprite: {fileID: -7565171749068916903, guid: 309567166c1a18c49971a41257c87958, type: 3}
-  - Id: "Qu\u1EF7_M\u1ED9t_Gi\xF2"
-    Sprite: {fileID: 4112130325923112468, guid: e2a9dc76eea2b5340ad4041873584d55, type: 3}
+  - Id: Mot_Go
+    Sprite: {fileID: -2343693395358084441, guid: f98c4e1a3bf8dd74291d26f6bb719684, type: 3}
+    Scale: 1.17912
+  - Id: Bu_Nhin_Rom
+    Sprite: {fileID: -1632105699978703156, guid: f126ecc5270c04c4686b13856f631aad, type: 3}
+    Scale: 1.8975363
+  - Id: Goc_Cay_Ma
+    Sprite: {fileID: 4326872430171513394, guid: 7d1aa7dae4e831942873078a47ee6812, type: 3}
+    Scale: 2.1403987
+  - Id: Qua_Den
+    Sprite: {fileID: -7492462407953686149, guid: e2449a9db24f3c44c99cea62ed7efe50, type: 3}
+    Scale: 1.24593
+  - Id: Moc_Tinh
+    Sprite: {fileID: -6248741079362886434, guid: 1546afd2633f5b244bd64d8302719bc4, type: 3}
+    Scale: 2.84425

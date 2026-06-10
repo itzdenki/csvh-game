@@ -63,9 +63,14 @@
 .hud-icon:hover { background-color: rgba(120, 70, 30, 0.95); scale: 1.12 1.12; border-color: rgb(255, 210, 120); }
 .hud-icon:active { background-color: rgba(180, 110, 40, 1); scale: 1.05 1.05; }
 
-#IconAttack  { background-color: rgba(160, 50, 40, 0.85); }
-#IconArmor   { background-color: rgba(60, 110, 70, 0.85); }
-#IconExp     { background-color: rgba(80, 100, 130, 0.85); }
+/* Nút "Nâng Cấp" duy nhất phía trên thanh máu — mở bảng Nâng Cấp 2 tab. */
+.hud-upgrade-hub-button {
+    width: 128px;
+    height: 48px;
+    font-size: 16px;
+    background-color: rgba(160, 110, 35, 0.92);
+    border-color: rgb(255, 210, 120);
+}
 
 /* Ba skill Special — tông đồng/vàng cổ, kich thước nhỏ hơn để xếp gọn 3 icon. */
 .hud-icon-skill { width: 50px; height: 50px; font-size: 11px; }

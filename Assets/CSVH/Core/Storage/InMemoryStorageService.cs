@@ -48,6 +48,9 @@ namespace CSVH.Core.Storage
         // Mỗi kênh giữ giá trị đã được kẹp [0,1]. Không có entry => trả DefaultVolume (Requirement 12.2).
         private readonly Dictionary<VolumeChannel, float> _volumes = new Dictionary<VolumeChannel, float>();
 
+        // Null = chưa từng ghi → ReadMetaProgress trả MetaProgressSnapshot.Empty (GDD Cơ chế 2).
+        private MetaProgressSnapshot _meta;
+
         // Feature: tower-defense-vn — Requirement 8.6, Property 19.
         /// <inheritdoc />
         public long ReadHighScore() => _highScore ?? DefaultHighScore;
@@ -86,6 +89,27 @@ namespace CSVH.Core.Storage
             // để giữ bất biến "giá trị lưu luôn ∈ [0,1]" (Requirement 12.3).
             var clamped = float.IsNaN(value) ? DefaultVolume : Math.Clamp(value, 0.0f, 1.0f);
             _volumes[channel] = clamped;
+        }
+
+        // Feature: tower-defense-vn — GDD Cơ chế 2 (Meta Upgrade).
+        /// <inheritdoc />
+        public MetaProgressSnapshot ReadMetaProgress() => _meta ?? MetaProgressSnapshot.Empty;
+
+        // Feature: tower-defense-vn — GDD Cơ chế 2 (Meta Upgrade).
+        /// <inheritdoc />
+        public void WriteMetaProgress(MetaProgressSnapshot snapshot)
+        {
+            if (snapshot is null)
+            {
+                throw new ArgumentNullException(nameof(snapshot));
+            }
+
+            // Kẹp mọi trường về ≥ 0 để round-trip luôn trả giá trị hợp lệ (đồng dạng Kỷ_Lục).
+            _meta = new MetaProgressSnapshot(
+                Coins: snapshot.Coins < 0L ? 0L : snapshot.Coins,
+                GateHpLevel: snapshot.GateHpLevel < 0 ? 0 : snapshot.GateHpLevel,
+                CrossbowDamageLevel: snapshot.CrossbowDamageLevel < 0 ? 0 : snapshot.CrossbowDamageLevel,
+                UltimateCooldownLevel: snapshot.UltimateCooldownLevel < 0 ? 0 : snapshot.UltimateCooldownLevel);
         }
     }
 }
